@@ -1,12 +1,15 @@
 import 'package:connectivity/connectivity.dart';
 import 'package:dio/dio.dart';
-import 'package:robust_http/robust_http_log.dart';
+import 'package:robust_http/robust_log.dart';
 
 import 'exceptions.dart';
 
+/// A [Dio] wrapper that can support retry when error happens
+///
+/// [Dio]:(https://pub.dev/packages/dio)
 class HTTP {
-  int httpRetries = 3;
-  Dio dio;
+  int _httpRetries = 3;
+  Dio _dio;
 
   /// Configure HTTP with defaults from a Map
   ///
@@ -18,9 +21,9 @@ class HTTP {
   ///
   /// `headers` http headers
   ///
-  /// `logLevel` logLevel to print http log. Default is none (0)
+  /// `logLevel` logLevel to print http log. Only accept `debug` or `error`. Default only print error
   HTTP(String baseUrl, [Map<String, dynamic> options = const {}]) {
-    httpRetries = options["httpRetries"] ?? httpRetries;
+    _httpRetries = options["httpRetries"] ?? _httpRetries;
 
     final baseOptions = BaseOptions(
         baseUrl: baseUrl,
@@ -28,8 +31,9 @@ class HTTP {
         receiveTimeout: options["receiveTimeout"] ?? 60000,
         headers: options["headers"] ?? {});
 
-    dio = new Dio(baseOptions);
-    dio.interceptors.add(Log(level: options["logLevel"] ?? Log.none));
+    _dio = new Dio(baseOptions);
+    var logLevel = options['logLevel'];
+    _dio.interceptors.add(LoggerInterceptor(logLevel == 'debug'));
   }
 
   /// Does a http GET (with optional overrides).
@@ -83,12 +87,12 @@ class HTTP {
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
-    dio.options.method = method;
+    _dio.options.method = method;
 
-    for (var i = 1; i <= (httpRetries ?? this.httpRetries); i++) {
+    for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
       try {
         var response =
-            (await dio.request(url, queryParameters: parameters, data: data));
+            (await _dio.request(url, queryParameters: parameters, data: data));
         return includeHttpResponse == true ? response : response.data;
       } catch (error) {
         await _handleException(error);
@@ -98,9 +102,17 @@ class HTTP {
     throw RetryFailureException();
   }
 
-  /// Change headers
+  /// Get dio instance
+  Dio get dio {
+    return _dio;
+  }
+
+  /// Http request headers. The keys of initial headers will be converted to lowercase,
+  /// for example 'Content-Type' will be converted to 'content-type'.
+  ///
+  /// You should use lowercase as the key name when you need to set the request header.
   set headers(Map<String, dynamic> map) {
-    dio.options.headers = map;
+    _dio.options.headers = map;
   }
 
   /// Handle exceptions that come from various failures
