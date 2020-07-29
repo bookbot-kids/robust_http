@@ -2,6 +2,12 @@
 
 A robust http Flutter package base on [dio](https://pub.dev/packages/dio).
 
+## Fetures:
+Support to retry on error
+Localize general error
+Config dynamically
+Print http log messages
+
 ## Getting Started
 
 This project is a starting point for a Dart
