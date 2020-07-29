@@ -21,7 +21,7 @@ class HTTP {
   ///
   /// `headers` http headers
   ///
-  /// `logLevel` logLevel to print http log. Only accept `debug` or `error`. Default only print error
+  /// `logLevel` logLevel to print http log. Only accept `none`, `debug` or `error`. Default is `error`
   HTTP(String baseUrl, [Map<String, dynamic> options = const {}]) {
     _httpRetries = options["httpRetries"] ?? _httpRetries;
 
@@ -33,7 +33,9 @@ class HTTP {
 
     _dio = new Dio(baseOptions);
     var logLevel = options['logLevel'];
-    _dio.interceptors.add(LoggerInterceptor(logLevel == 'debug'));
+    if (logLevel != 'none') {
+      _dio.interceptors.add(LoggerInterceptor(logLevel == 'debug'));
+    }
   }
 
   /// Does a http GET (with optional overrides).
