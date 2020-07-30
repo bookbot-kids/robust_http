@@ -1,5 +1,5 @@
 import 'package:dio/dio.dart';
-import 'package:robust_http/log_adapter.dart';
+import 'package:robust_http/http_log_adapter.dart';
 
 /// A log interceptor to print http request, response. Must be set [LogAdapter.shared.logger] first
 class LoggerInterceptor extends Interceptor {
@@ -85,11 +85,12 @@ class LoggerInterceptor extends Interceptor {
   /// Print log at debug level
   void _printDebugLog(List<String> messages) {
     if (messages.isNotEmpty && canPrintDebugLog)
-      LogAdapter.shared.logger?.d(messages.join('\n'));
+      HttpLogAdapter.shared.logger?.d(messages.join('\n'));
   }
 
   /// Print log at error level
   void _printErrorLog(List<String> messages) {
-    if (messages.isNotEmpty) LogAdapter.shared.logger?.e(messages.join('\n'));
+    if (messages.isNotEmpty)
+      HttpLogAdapter.shared.logger?.e(messages.join('\n'));
   }
 }
