@@ -119,7 +119,6 @@ class HTTP {
 
   /// Handle exceptions that come from various failures
   Future<void> _handleException(dynamic error) async {
-    print(error.toString());
     if (error is DioError) {
       if (error.type == DioErrorType.CONNECT_TIMEOUT ||
           error.type == DioErrorType.RECEIVE_TIMEOUT) {
@@ -130,11 +129,9 @@ class HTTP {
       } else if (error.type == DioErrorType.RESPONSE) {
         throw UnexpectedResponseException(error.response);
       } else {
-        print(error.toString());
         throw UnknownException(error.message);
       }
     } else {
-      print(error.toString());
       throw UnknownException(error.message);
     }
   }
