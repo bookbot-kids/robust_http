@@ -26,10 +26,12 @@ class HTTP {
     _httpRetries = options["httpRetries"] ?? _httpRetries;
 
     final baseOptions = BaseOptions(
-        baseUrl: baseUrl,
-        connectTimeout: options["connectTimeout"] ?? 60000,
-        receiveTimeout: options["receiveTimeout"] ?? 60000,
-        headers: options["headers"] ?? {});
+      baseUrl: baseUrl,
+      connectTimeout: options["connectTimeout"] ?? 60000,
+      receiveTimeout: options["receiveTimeout"] ?? 60000,
+      headers: options["headers"] ?? {},
+      responseType: options["responseType"] ?? ResponseType.json,
+    );
 
     _dio = new Dio(baseOptions);
     var logLevel = options['logLevel'];
@@ -75,6 +77,32 @@ class HTTP {
         parameters: parameters,
         data: data,
         includeHttpResponse: includeHttpResponse);
+  }
+
+  /// Download file, and manage the many network problems that can happen.
+  /// Will only throw an exception when it's sure that there is no internet connection,
+  /// exhausts its retries or gets an unexpected server response
+  ///
+  /// `localPath`: the save path. If it is null, then using stream download
+  /// `includeHttpResponse`: true will return full http response (header, json data..), otherwise only return stream
+  /// `url`: The file url
+  Future<dynamic> download(String url,
+      {String localPath, bool includeHttpResponse = false}) async {
+    for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
+      try {
+        if (localPath != null) {
+          return await dio.download(url, localPath);
+        }
+
+        final response = await dio.get<ResponseBody>(url,
+            options: Options(responseType: ResponseType.stream));
+        return includeHttpResponse == true ? response : response.data;
+      } catch (error) {
+        await _handleException(error);
+      }
+    }
+    // Exhausted retries, so send back exception
+    throw RetryFailureException();
   }
 
   /// Make call, and manage the many network problems that can happen.
