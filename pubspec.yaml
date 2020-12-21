@@ -12,9 +12,9 @@ dependencies:
   flutter:
     sdk: flutter
   dio: ^3.0.10
-  intl: ^0.16.1
-  connectivity: ^0.4.9
-  logger: ^0.9.2
+  intl: ^0.17.0-nullsafety.2
+  connectivity: ^2.0.2
+  logger: ^0.9.4
 
 dev_dependencies:
   flutter_test:
