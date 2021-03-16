@@ -79,7 +79,7 @@ class LoggerInterceptor extends Interceptor {
 
   /// Format the message into list of string
   List<String> _formatMessage(msg) {
-    return msg.toString().split('\n') ?? List<String>();
+    return msg.toString().split('\n') ?? <String>[];
   }
 
   /// Print log at debug level
