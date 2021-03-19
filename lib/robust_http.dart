@@ -40,6 +40,20 @@ class HTTP {
     }
   }
 
+  /// Does a http HEAD (with optional overrides).
+  /// You can pass the full url, or the path after the baseUrl.
+  /// Will timeout, check connectivity and retry until there is a response.
+  /// Will handle most success or failure cases and will respond with either data or exception.
+  Future<dynamic> head(String url,
+      {Map<String, dynamic> parameters,
+      dynamic data,
+      bool includeHttpResponse = false}) async {
+    return request("HEAD", url,
+        parameters: parameters,
+        data: data,
+        includeHttpResponse: includeHttpResponse);
+  }
+
   /// Does a http GET (with optional overrides).
   /// You can pass the full url, or the path after the baseUrl.
   /// Will timeout, check connectivity and retry until there is a response.
@@ -111,7 +125,7 @@ class HTTP {
   ///
   /// `includeHttpResponse`: true will return full http response (header, json data..), otherwise only return json
   /// `parameters`: query parameters
-  /// `method`: http method like GET, PUT, POST..
+  /// `method`: http method like GET, PUT, POST, HEAD..
   /// `url`: The url path
   Future<dynamic> request(String method, String url,
       {Map<String, dynamic> parameters,
