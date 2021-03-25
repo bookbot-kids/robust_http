@@ -33,6 +33,10 @@ class HTTP {
       responseType: options["responseType"] ?? ResponseType.json,
     );
 
+    if (options["validateStatus"] != null) {
+      baseOptions.validateStatus = options["validateStatus"];
+    }
+
     _dio = new Dio(baseOptions);
     var logLevel = options['logLevel'];
     if (logLevel != 'none') {
