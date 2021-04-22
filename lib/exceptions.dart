@@ -4,8 +4,9 @@ import 'package:intl/intl.dart';
 class UnknownException implements Exception {
   String devDescription;
   UnknownException(this.devDescription);
-  String toString() =>
-      Intl.message("We're unsure what happened, but we're looking into it.",
+  String toString() => devDescription?.isNotEmpty == true
+      ? 'Error $devDescription'
+      : Intl.message("We're unsure what happened, but we're looking into it.",
           name: 'unknownException');
 }
 
@@ -28,8 +29,7 @@ class UnexpectedResponseException implements Exception {
 
   UnexpectedResponseException(this.url, this.statusCode, this.errorMessage);
   String toString() =>
-      Intl.message('There is an unexpected issue. Please try again later.',
-          name: 'unexpectedResponseFailure');
+      'Request error [$statusCode] at $url, message: $errorMessage';
 }
 
 class SyncDataException implements Exception {

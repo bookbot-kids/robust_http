@@ -173,8 +173,8 @@ class HTTP {
           throw ConnectivityException();
         }
       } else if (error.response != null) {
-        throw UnexpectedResponseException(error.request.baseUrl,
-            error.response.statusCode, error.response.statusMessage);
+        throw UnexpectedResponseException(
+            error.request.path, error.response.statusCode, error.message);
       } else {
         throw UnknownException('''
         Dio request error on ${error.request.baseUrl}
