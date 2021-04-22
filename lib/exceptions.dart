@@ -22,8 +22,11 @@ class RetryFailureException implements Exception {
 }
 
 class UnexpectedResponseException implements Exception {
-  dynamic response;
-  UnexpectedResponseException(this.response);
+  String url;
+  int statusCode;
+  String errorMessage;
+
+  UnexpectedResponseException(this.url, this.statusCode, this.errorMessage);
   String toString() =>
       Intl.message('There is an unexpected issue. Please try again later.',
           name: 'unexpectedResponseFailure');

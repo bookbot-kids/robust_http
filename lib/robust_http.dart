@@ -172,10 +172,14 @@ class HTTP {
             ConnectivityResult.none) {
           throw ConnectivityException();
         }
-      } else if (error.type == DioErrorType.RESPONSE) {
-        throw UnexpectedResponseException(error.response);
+      } else if (error.response != null) {
+        throw UnexpectedResponseException(error.request.baseUrl,
+            error.response.statusCode, error.response.statusMessage);
       } else {
-        throw UnknownException(error.message);
+        throw UnknownException('''
+        Dio request error on ${error.request.baseUrl}
+        Message: ${error.message}
+        ''');
       }
     } else {
       throw UnknownException(error.message);
