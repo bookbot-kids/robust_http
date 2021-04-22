@@ -176,10 +176,8 @@ class HTTP {
         throw UnexpectedResponseException(
             error.request.path, error.response.statusCode, error.message);
       } else {
-        throw UnknownException('''
-        Dio request error on ${error.request.baseUrl}
-        Message: ${error.message}
-        ''');
+        throw UnknownException(
+            ' Request error on ${error.request.path} ${error.message}');
       }
     } else {
       throw UnknownException(error.message);
