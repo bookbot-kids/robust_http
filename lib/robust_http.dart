@@ -166,18 +166,18 @@ class HTTP {
   /// Handle exceptions that come from various failures
   Future<void> _handleException(dynamic error) async {
     if (error is DioError) {
-      if (error.type == DioErrorType.CONNECT_TIMEOUT ||
-          error.type == DioErrorType.RECEIVE_TIMEOUT) {
+      if (error.type == DioErrorType.connectTimeout ||
+          error.type == DioErrorType.receiveTimeout) {
         if (await Connectivity().checkConnectivity() ==
             ConnectivityResult.none) {
           throw ConnectivityException();
         }
       } else if (error.response != null) {
-        throw UnexpectedResponseException(
-            error.request.path, error.response.statusCode, error.message);
+        throw UnexpectedResponseException(error.requestOptions.path,
+            error.response.statusCode, error.message);
       } else {
         throw UnknownException(
-            ' Request error on ${error.request.path} ${error.message}');
+            ' Request error on ${error.requestOptions.path} ${error.message}');
       }
     } else {
       throw UnknownException(error.message);

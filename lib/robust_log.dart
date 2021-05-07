@@ -12,7 +12,8 @@ class LoggerInterceptor extends Interceptor {
   LoggerInterceptor([this.canPrintDebugLog = false]);
 
   @override
-  Future onRequest(RequestOptions options) async {
+  Future onRequest(
+      RequestOptions options, RequestInterceptorHandler handler) async {
     // reset the messages when starting a new request
     logMessages = [];
 
@@ -36,9 +37,9 @@ class LoggerInterceptor extends Interceptor {
   }
 
   @override
-  Future onError(DioError err) async {
+  Future onError(DioError err, ErrorInterceptorHandler handler) async {
     logMessages.add('*** DioError ***:');
-    logMessages.add('uri: ${err.request.uri}');
+    logMessages.add('uri: ${err.requestOptions.uri}');
     logMessages.add('$err');
     if (err.response != null) {
       logMessages.addAll(_formatResponse(err.response));
@@ -48,7 +49,8 @@ class LoggerInterceptor extends Interceptor {
   }
 
   @override
-  Future onResponse(Response response) async {
+  Future onResponse(
+      Response response, ResponseInterceptorHandler handler) async {
     logMessages.add('*** Response ***');
     logMessages.addAll(_formatResponse(response));
     _printDebugLog(logMessages);
@@ -57,7 +59,7 @@ class LoggerInterceptor extends Interceptor {
   /// Format the http response into list of strings
   List<String> _formatResponse(Response response) {
     List<String> logMessages = [];
-    logMessages.add(_formatKeyValue('uri', response.request?.uri));
+    logMessages.add(_formatKeyValue('uri', response.requestOptions?.uri));
     logMessages.add(_formatKeyValue('statusCode', response.statusCode));
     if (response.isRedirect == true) {
       logMessages.add(_formatKeyValue('redirect', response.realUri));
