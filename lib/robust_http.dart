@@ -1,6 +1,8 @@
 import 'package:connectivity/connectivity.dart';
-import 'package:dio/dio.dart';
-import 'package:robust_http/robust_log.dart';
+import 'package:dio_http/dio.dart';
+import 'package:robust_http/base_http.dart';
+import 'package:robust_http/resty_http.dart';
+import 'package:robust_http/simple_http.dart';
 
 import 'exceptions.dart';
 
@@ -9,7 +11,13 @@ import 'exceptions.dart';
 /// [Dio]:(https://pub.dev/packages/dio)
 class HTTP {
   int _httpRetries = 3;
-  Dio _dio;
+  BaseHttp _httpClient;
+
+  /// Http request headers. The keys of initial headers will be converted to lowercase,
+  /// for example 'Content-Type' will be converted to 'content-type'.
+  ///
+  /// You should use lowercase as the key name when you need to set the request header.
+  Map<String, String> headers;
 
   /// Configure HTTP with defaults from a Map
   ///
@@ -22,25 +30,16 @@ class HTTP {
   /// `headers` http headers
   ///
   /// `logLevel` logLevel to print http log. Only accept `none`, `debug` or `error`. Default is `error`
-  HTTP(String baseUrl, [Map<String, dynamic> options = const {}]) {
+  HTTP(String baseUrl,
+      [Map<String, dynamic> options = const {}, BaseHttp client]) {
     _httpRetries = options["httpRetries"] ?? _httpRetries;
-
-    final baseOptions = BaseOptions(
-      baseUrl: baseUrl,
-      connectTimeout: options["connectTimeout"] ?? 60000,
-      receiveTimeout: options["receiveTimeout"] ?? 60000,
-      headers: options["headers"] ?? {},
-      responseType: options["responseType"] ?? ResponseType.json,
-    );
-
-    if (options["validateStatus"] != null) {
-      baseOptions.validateStatus = options["validateStatus"];
-    }
-
-    _dio = new Dio(baseOptions);
-    var logLevel = options['logLevel'];
-    if (logLevel != 'none') {
-      _dio.interceptors.add(LoggerInterceptor(logLevel == 'debug'));
+    if (client == null) {
+      _httpClient = SimpleHttp(
+        baseUrl: baseUrl,
+        options: options,
+      );
+    } else {
+      _httpClient = client;
     }
   }
 
@@ -108,15 +107,10 @@ class HTTP {
       {String localPath, bool includeHttpResponse = false}) async {
     for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
       try {
-        if (localPath != null) {
-          return await dio.download(url, localPath);
-        }
-
-        final response = await dio.get<ResponseBody>(url,
-            options: Options(responseType: ResponseType.stream));
-        return includeHttpResponse == true ? response : response.data;
+        _httpClient.download(url,
+            localPath: localPath, includeHttpResponse: includeHttpResponse);
       } catch (error) {
-        await _handleException(error);
+        await _httpClient.handleException(error);
       }
     }
     // Exhausted retries, so send back exception
@@ -135,52 +129,18 @@ class HTTP {
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
-    _dio.options.method = method;
-
     for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
       try {
-        var response =
-            (await _dio.request(url, queryParameters: parameters, data: data));
-        return includeHttpResponse == true ? response : response.data;
+        return (await _httpClient.request(method, url, headers,
+            parameters: parameters, data: data));
       } catch (error) {
-        await _handleException(error);
+        await _httpClient.handleException(error);
       }
     }
     // Exhausted retries, so send back exception
     throw RetryFailureException();
   }
 
-  /// Get dio instance
-  Dio get dio {
-    return _dio;
-  }
-
-  /// Http request headers. The keys of initial headers will be converted to lowercase,
-  /// for example 'Content-Type' will be converted to 'content-type'.
-  ///
-  /// You should use lowercase as the key name when you need to set the request header.
-  set headers(Map<String, dynamic> map) {
-    _dio.options.headers = map;
-  }
-
   /// Handle exceptions that come from various failures
-  Future<void> _handleException(dynamic error) async {
-    if (error is DioError) {
-      if (error.type == DioErrorType.CONNECT_TIMEOUT ||
-          error.type == DioErrorType.RECEIVE_TIMEOUT) {
-        if (await Connectivity().checkConnectivity() ==
-            ConnectivityResult.none) {
-          throw ConnectivityException();
-        }
-      } else if (error.response != null) {
-        throw UnexpectedResponseException(
-            error.request.path, error.response.statusCode, error.message);
-      } else {
-        throw UnknownException(
-            ' Request error on ${error.request.path} ${error.message}');
-      }
-    } else {
-      throw UnknownException(error.message);
-    }
-  }
+  Future<void> _handleException(dynamic error) async {}
 }

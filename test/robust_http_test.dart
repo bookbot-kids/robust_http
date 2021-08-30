@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robust_http/dio_http.dart';
 
 import 'package:robust_http/robust_http.dart';
 
@@ -6,8 +7,13 @@ void main() {
   group('HTTP: ', () {
     HTTP http;
     setUp(() {
-      http = HTTP('https://httpstat.us/',
-          {"connectTimeout": 3000, "receiveTimeout": 3000});
+      http = HTTP(
+        'https://httpstat.us/',
+        {"connectTimeout": 3000, "receiveTimeout": 3000},
+        // DioHttp(
+        //     baseUrl: 'https://httpstat.us/',
+        //     options: {"connectTimeout": 3000, "receiveTimeout": 3000}),
+      );
     });
 
     test('Test full url', () async {

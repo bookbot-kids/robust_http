@@ -11,10 +11,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  dio: ^3.0.10
   intl: ^0.17.0
   connectivity: 3.0.3
   logger: ^1.0.0
+  resty: ^0.1.0
+  dio_http: ^5.0.0
+  http: ^0.13.3
 
 dev_dependencies:
   flutter_test:
