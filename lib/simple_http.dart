@@ -85,6 +85,7 @@ class SimpleHttp extends BaseHttp {
 
   @override
   Future<void> handleException(error) async {
+    print('SimpleHttp exception: $error');
     if (error is UnexpectedResponseException) {
       throw error;
     } else if (error is TimeoutException) {
