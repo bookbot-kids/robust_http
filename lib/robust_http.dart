@@ -131,8 +131,8 @@ class HTTP {
       bool includeHttpResponse = false}) async {
     for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
       try {
-        return (await _httpClient.request(method, url, headers,
-            parameters: parameters, data: data));
+        return await _httpClient.request(method, url, headers,
+            parameters: parameters, data: data);
       } catch (error) {
         await _httpClient.handleException(error);
       }

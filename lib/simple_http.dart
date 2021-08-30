@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:robust_http/base_http.dart';
 import 'package:http/http.dart' as http;
+import 'package:robust_http/http_response.dart';
 
 import 'exceptions.dart';
 
@@ -39,7 +40,7 @@ class SimpleHttp extends BaseHttp {
           response.statusCode, response.reasonPhrase);
     }
     return includeHttpResponse
-        ? response
+        ? SimpleResponse.fromHttpResponse(response)
         : compute(parseJsonResponse, response.body);
   }
 

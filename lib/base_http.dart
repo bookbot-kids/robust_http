@@ -12,3 +12,5 @@ abstract class BaseHttp {
 
   Future<void> handleException(dynamic error);
 }
+
+
