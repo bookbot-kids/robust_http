@@ -43,7 +43,7 @@ class SimpleHttp extends BaseHttp {
       throw UnexpectedResponseException(response.request.url.toString(),
           response.statusCode, response.reasonPhrase);
     }
-    print('SimpleHttp Response: ${response.request.url.toString()}');
+    print('SimpleHttp Response: ${response.body}');
     return includeHttpResponse
         ? SimpleResponse.fromHttpResponse(response)
         : compute(parseJsonResponse, response.body);
