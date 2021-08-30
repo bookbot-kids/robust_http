@@ -30,15 +30,20 @@ class SimpleHttp extends BaseHttp {
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
+
     final response = await _mapRequest(method, url,
             parameters: parameters, data: data, headers: headers)
         .timeout(timeout,
             onTimeout: () =>
                 throw TimeoutException('Request timeout', timeout));
+   print('SimpleHttp Request: ${response.request.url.toString()}');
     if (response.statusCode >= 400) {
+      print('SimpleHttp Error: Reason: ${response.reasonPhrase}: ErrorCode: '
+          '${response.statusCode}');
       throw UnexpectedResponseException(response.request.url.toString(),
           response.statusCode, response.reasonPhrase);
     }
+    print('SimpleHttp Response: ${response.request.url.toString()}');
     return includeHttpResponse
         ? SimpleResponse.fromHttpResponse(response)
         : compute(parseJsonResponse, response.body);
