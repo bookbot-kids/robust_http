@@ -1,7 +1,4 @@
-import 'package:connectivity/connectivity.dart';
-import 'package:dio_http/dio.dart';
 import 'package:robust_http/base_http.dart';
-import 'package:robust_http/resty_http.dart';
 import 'package:robust_http/simple_http.dart';
 
 import 'exceptions.dart';

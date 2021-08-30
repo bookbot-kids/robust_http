@@ -1,5 +1,5 @@
 import 'package:connectivity/connectivity.dart';
-import 'package:dio_http/dio.dart';
+import 'package:dio_http/dio_http.dart';
 import 'package:flutter/widgets.dart';
 import 'package:robust_http/base_http.dart';
 import 'package:robust_http/robust_log.dart';
