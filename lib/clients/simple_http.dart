@@ -6,11 +6,12 @@ import 'package:connectivity/connectivity.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
-import 'package:robust_http/base_http.dart';
+import 'package:robust_http/clients/base_http.dart';
 import 'package:http/http.dart' as http;
+import 'package:robust_http/http_log_adapter.dart';
 import 'package:robust_http/http_response.dart';
 
-import 'exceptions.dart';
+import '../exceptions.dart';
 
 class SimpleHttp extends BaseHttp {
   String baseUrl;
@@ -26,7 +27,7 @@ class SimpleHttp extends BaseHttp {
 
   @override
   Future<dynamic> request(
-      String method, String url, Map<String, dynamic> headers,
+      HttpMethod method, String url, Map<String, dynamic> headers,
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
@@ -36,50 +37,59 @@ class SimpleHttp extends BaseHttp {
             onTimeout: () =>
                 throw TimeoutException('Request timeout', timeout));
     if (response.statusCode >= 400) {
-      print('SimpleHttp Error: Reason: ${response.reasonPhrase}: ErrorCode: '
-          '${response.statusCode}');
+      HttpLogAdapter.shared.logger
+          ?.e('SimpleHttp Error: Reason: ${response.reasonPhrase}: ErrorCode: '
+              '${response.statusCode}');
       throw UnexpectedResponseException(response.request.url.toString(),
           response.statusCode, response.reasonPhrase);
     }
-    print('SimpleHttp Response: ${response.body}');
+    HttpLogAdapter.shared.logger?.e('SimpleHttp Response: ${response.body}');
     return includeHttpResponse
         ? SimpleResponse.fromHttpResponse(response)
         : compute(parseJsonResponse, response.body);
   }
 
-  Future<Response> _mapRequest(String method, String url,
+  Future<Response> _mapRequest(HttpMethod method, String url,
       {Map<String, dynamic> parameters,
       dynamic data,
-      Map<String, String> headers = const {}}) {
+      Map<String, dynamic> headers = const {}}) {
     if (data is Map &&
         headers['content-type'] != 'application/x-www-form-urlencoded') {
       data = jsonEncode(data);
-      print('SimpleHttp data: $data');
+      HttpLogAdapter.shared.logger?.d('SimpleHttp data: $data');
     }
+
+    final normalizedHeaders = headers.map((k, v) {
+      return MapEntry<String, String>(k, v.toString());
+    });
+
     switch (method) {
-      case 'GET':
-        return client.get(_buildUri(url, parameters), headers: headers);
-      case 'HEAD':
-        return client.head(_buildUri(url, parameters), headers: headers);
-      case 'POST':
+      case HttpMethod.GET:
+        return client.get(_buildUri(url, parameters),
+            headers: normalizedHeaders);
+      case HttpMethod.HEAD:
+        return client.head(_buildUri(url, parameters),
+            headers: normalizedHeaders);
+      case HttpMethod.POST:
         return client.post(_buildUri(url, parameters),
-            headers: headers, body: data);
-      case 'PUT':
+            headers: normalizedHeaders, body: data);
+      case HttpMethod.PUT:
         return client.put(_buildUri(url, parameters),
-            headers: headers, body: data);
-      case 'PATCH':
+            headers: normalizedHeaders, body: data);
+      case HttpMethod.PATCH:
         return client.patch(_buildUri(url, parameters),
-            headers: headers, body: data);
-      case 'DELETE':
+            headers: normalizedHeaders, body: data);
+      case HttpMethod.DELETE:
         return client.delete(_buildUri(url, parameters),
-            headers: headers, body: data);
+            headers: normalizedHeaders, body: data);
       default:
-        return client.get(_buildUri(url, parameters), headers: headers);
+        return client.get(_buildUri(url, parameters),
+            headers: normalizedHeaders);
     }
   }
 
   Uri _buildUri(String endpoint, [Map<String, dynamic> query]) {
-    print('SimpleHttp endpoint: $endpoint');
+    HttpLogAdapter.shared.logger?.d('SimpleHttp endpoint: $endpoint');
     final queryParameters = query?.map((k, v) => MapEntry('$k', '$v')) ?? {};
     final fullUrl = endpoint.contains('http') ? endpoint : '$baseUrl$endpoint';
     final uri = Uri.parse(fullUrl);
@@ -89,7 +99,7 @@ class SimpleHttp extends BaseHttp {
 
   @override
   Future<void> handleException(error) async {
-    print('SimpleHttp exception: $error');
+    HttpLogAdapter.shared.logger?.e('SimpleHttp exception: $error');
     if (error is UnexpectedResponseException) {
       throw error;
     } else if (error is TimeoutException) {
@@ -110,10 +120,4 @@ class SimpleHttp extends BaseHttp {
     await file.writeAsBytes(bytes);
     return file;
   }
-}
-
-dynamic parseJsonResponse(String responseBody) {
-  return responseBody != null && responseBody.isNotEmpty
-      ? jsonDecode(responseBody)
-      : responseBody;
 }

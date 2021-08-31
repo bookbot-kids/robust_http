@@ -1,7 +1,6 @@
 name: robust_http
 description: A new Flutter package project.
 version: 0.0.1
-author:
 homepage:
 
 environment:
@@ -17,6 +16,7 @@ dependencies:
   resty: ^0.1.0
   dio_http: ^5.0.0
   http: ^0.13.3
+  enum_to_string: ^2.0.1
 
 dev_dependencies:
   flutter_test:

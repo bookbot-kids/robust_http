@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:robust_http/dio_http.dart';
 
 import 'package:robust_http/robust_http.dart';
 
@@ -22,6 +21,14 @@ void main() {
 
     test('Test path', () async {
       expect((await http.get('200')), equals(""));
+    });
+
+    test('Test json header', () async {
+      http.headers = {
+        'accept': 'application/json',
+      };
+      final response = await http.get('200');
+      expect(response['code'], equals(200));
     });
 
     test('Test bad response gets exception', () async {

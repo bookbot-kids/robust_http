@@ -1,12 +1,8 @@
-
-
-
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
-import 'package:robust_http/simple_http.dart';
+import 'package:robust_http/clients/base_http.dart';
 
 class SimpleResponse {
-
   /// Response body. may have been transformed
   dynamic data;
 
@@ -21,9 +17,7 @@ class SimpleResponse {
     statusCode = httpResponse.statusCode;
     headers = Headers.fromMap(httpResponse.headers);
   }
-
 }
-
 
 class Headers {
   // Header field name

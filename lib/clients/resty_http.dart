@@ -1,8 +1,7 @@
 import 'package:flutter/cupertino.dart';
 import 'package:resty/resty.dart';
-import 'package:robust_http/base_http.dart';
-
-import 'exceptions.dart';
+import 'package:robust_http/clients/base_http.dart';
+import 'package:robust_http/exceptions.dart';
 
 class RestyHttp extends BaseHttp {
   Resty _resty;
@@ -20,7 +19,7 @@ class RestyHttp extends BaseHttp {
 
   @override
   Future<dynamic> request(
-      String method, String url, Map<String, dynamic> headers,
+      HttpMethod method, String url, Map<String, dynamic> headers,
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
@@ -32,20 +31,20 @@ class RestyHttp extends BaseHttp {
     return includeHttpResponse ? response : response.json;
   }
 
-  Future<Response> _mapRequest(String method, String url,
+  Future<Response> _mapRequest(HttpMethod method, String url,
       {Map<String, dynamic> parameters,
       data,
       Map<String, dynamic> headers = const {}}) {
     switch (method) {
-      case 'GET':
+      case HttpMethod.GET:
         return _resty.get(url, query: parameters, headers: headers);
-      case 'POST':
+      case HttpMethod.POST:
         return _resty.post(url, body: data, headers: headers);
-      case 'PUT':
+      case HttpMethod.PUT:
         return _resty.put(url, body: parameters, headers: headers);
-      case 'PATCH':
+      case HttpMethod.PATCH:
         return _resty.patch(url, body: parameters, headers: headers);
-      case 'DELETE':
+      case HttpMethod.DELETE:
         return _resty.delete(url, query: parameters, headers: headers);
       default:
         return _resty.get(url, query: parameters, headers: headers);
@@ -63,6 +62,5 @@ class RestyHttp extends BaseHttp {
 
   @override
   Future download(String url,
-      {String localPath, bool includeHttpResponse = false}) {
-  }
+      {String localPath, bool includeHttpResponse = false}) {}
 }

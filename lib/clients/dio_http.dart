@@ -1,10 +1,9 @@
 import 'package:connectivity/connectivity.dart';
 import 'package:dio_http/dio_http.dart';
 import 'package:flutter/widgets.dart';
-import 'package:robust_http/base_http.dart';
+import 'package:robust_http/clients/base_http.dart';
+import 'package:robust_http/exceptions.dart';
 import 'package:robust_http/robust_log.dart';
-
-import 'exceptions.dart';
 
 class DioHttp extends BaseHttp {
   Dio _dio;
@@ -52,12 +51,12 @@ class DioHttp extends BaseHttp {
 
   @override
   Future<dynamic> request(
-      String method, String url, Map<String, String> headers,
+      HttpMethod method, String url, Map<String, dynamic> headers,
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
     _dio.options.headers = headers;
-    _dio.options.method = method;
+    _dio.options.method = method.name;
     final response =
         await _dio.request(url, queryParameters: parameters, data: data);
     return includeHttpResponse ? response : response.data;

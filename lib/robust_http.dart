@@ -1,5 +1,5 @@
-import 'package:robust_http/base_http.dart';
-import 'package:robust_http/simple_http.dart';
+import 'package:robust_http/clients/base_http.dart';
+import 'package:robust_http/clients/simple_http.dart';
 
 import 'exceptions.dart';
 
@@ -14,7 +14,7 @@ class HTTP {
   /// for example 'Content-Type' will be converted to 'content-type'.
   ///
   /// You should use lowercase as the key name when you need to set the request header.
-  Map<String, String> headers;
+  Map<String, dynamic> headers = {};
 
   /// Configure HTTP with defaults from a Map
   ///
@@ -48,7 +48,7 @@ class HTTP {
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
-    return request("HEAD", url,
+    return request(HttpMethod.HEAD, url,
         parameters: parameters,
         data: data,
         includeHttpResponse: includeHttpResponse);
@@ -61,7 +61,7 @@ class HTTP {
   Future<dynamic> get(String url,
       {Map<String, dynamic> parameters,
       bool includeHttpResponse = false}) async {
-    return request("GET", url,
+    return request(HttpMethod.GET, url,
         parameters: parameters, includeHttpResponse: includeHttpResponse);
   }
 
@@ -73,7 +73,7 @@ class HTTP {
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
-    return request("POST", url,
+    return request(HttpMethod.POST, url,
         parameters: parameters,
         data: data,
         includeHttpResponse: includeHttpResponse);
@@ -87,7 +87,7 @@ class HTTP {
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
-    return request("PUT", url,
+    return request(HttpMethod.PUT, url,
         parameters: parameters,
         data: data,
         includeHttpResponse: includeHttpResponse);
@@ -122,7 +122,7 @@ class HTTP {
   /// `parameters`: query parameters
   /// `method`: http method like GET, PUT, POST, HEAD..
   /// `url`: The url path
-  Future<dynamic> request(String method, String url,
+  Future<dynamic> request(HttpMethod method, String url,
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
@@ -137,7 +137,4 @@ class HTTP {
     // Exhausted retries, so send back exception
     throw RetryFailureException();
   }
-
-  /// Handle exceptions that come from various failures
-  Future<void> _handleException(dynamic error) async {}
 }
