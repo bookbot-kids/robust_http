@@ -63,5 +63,7 @@ class RestyHttp extends BaseHttp {
 
   @override
   Future download(String url,
-      {String localPath, bool includeHttpResponse = false}) {}
+      {String localPath, bool includeHttpResponse = false}) {
+    throw UnimplementedError('Not implement yet');
+  }
 }

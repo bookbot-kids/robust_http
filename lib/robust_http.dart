@@ -129,7 +129,9 @@ class HTTP {
     for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
       try {
         return await _httpClient.request(method, url, headers,
-            parameters: parameters, data: data);
+            parameters: parameters,
+            data: data,
+            includeHttpResponse: includeHttpResponse);
       } catch (error) {
         await _httpClient.handleException(error);
       }
