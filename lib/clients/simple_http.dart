@@ -91,10 +91,18 @@ class SimpleHttp extends BaseHttp {
   Uri _buildUri(String endpoint, [Map<String, dynamic> query]) {
     HttpLogAdapter.shared.logger?.d('SimpleHttp endpoint: $endpoint');
     final queryParameters = query?.map((k, v) => MapEntry('$k', '$v')) ?? {};
-    final fullUrl = endpoint.contains('http') ? endpoint : '$baseUrl$endpoint';
+    final fullUrl =
+        endpoint.startsWith('http') ? endpoint : '$baseUrl$endpoint';
     final uri = Uri.parse(fullUrl);
+    if (queryParameters.isEmpty) {
+      return uri;
+    }
+
     queryParameters.addAll(uri.queryParameters);
-    return Uri.https(uri.authority, uri.path, queryParameters);
+    if (fullUrl.startsWith('https'))
+      return Uri.https(uri.authority, uri.path, queryParameters);
+
+    return Uri.http(uri.authority, uri.path, queryParameters);
   }
 
   @override
