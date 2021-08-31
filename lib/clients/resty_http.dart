@@ -3,6 +3,7 @@ import 'package:resty/resty.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/exceptions.dart';
 
+@Deprecated('This class is not ready to use')
 class RestyHttp extends BaseHttp {
   Resty _resty;
 

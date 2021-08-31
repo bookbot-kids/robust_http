@@ -13,6 +13,8 @@ import 'package:robust_http/http_response.dart';
 
 import '../exceptions.dart';
 
+@Deprecated(
+    'This class has some trouble with dynamic type in header & parameter')
 class SimpleHttp extends BaseHttp {
   String baseUrl;
   http.Client client;

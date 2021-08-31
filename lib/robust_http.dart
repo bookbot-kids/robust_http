@@ -1,5 +1,5 @@
 import 'package:robust_http/clients/base_http.dart';
-import 'package:robust_http/clients/simple_http.dart';
+import 'package:robust_http/clients/dio_http.dart';
 
 import 'exceptions.dart';
 
@@ -31,7 +31,7 @@ class HTTP {
       [Map<String, dynamic> options = const {}, BaseHttp client]) {
     _httpRetries = options["httpRetries"] ?? _httpRetries;
     if (client == null) {
-      _httpClient = SimpleHttp(
+      _httpClient = DioHttp(
         baseUrl: baseUrl,
         options: options,
       );
