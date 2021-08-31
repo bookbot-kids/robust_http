@@ -30,13 +30,11 @@ class SimpleHttp extends BaseHttp {
       {Map<String, dynamic> parameters,
       dynamic data,
       bool includeHttpResponse = false}) async {
-
     final response = await _mapRequest(method, url,
             parameters: parameters, data: data, headers: headers)
         .timeout(timeout,
             onTimeout: () =>
                 throw TimeoutException('Request timeout', timeout));
-   print('SimpleHttp Request: ${response.request.url.toString()}');
     if (response.statusCode >= 400) {
       print('SimpleHttp Error: Reason: ${response.reasonPhrase}: ErrorCode: '
           '${response.statusCode}');
@@ -51,8 +49,13 @@ class SimpleHttp extends BaseHttp {
 
   Future<Response> _mapRequest(String method, String url,
       {Map<String, dynamic> parameters,
-      data,
+      dynamic data,
       Map<String, String> headers = const {}}) {
+    if (data is Map &&
+        headers['content-type'] != 'application/x-www-form-urlencoded') {
+      data = jsonEncode(data);
+      print('SimpleHttp data: $data');
+    }
     switch (method) {
       case 'GET':
         return client.get(_buildUri(url, parameters), headers: headers);
@@ -76,8 +79,9 @@ class SimpleHttp extends BaseHttp {
   }
 
   Uri _buildUri(String endpoint, [Map<String, dynamic> query]) {
+    print('SimpleHttp endpoint: $endpoint');
     final queryParameters = query?.map((k, v) => MapEntry('$k', '$v')) ?? {};
-    final fullUrl = endpoint.contains('http') ? endpoint : '$baseUrl/$endpoint';
+    final fullUrl = endpoint.contains('http') ? endpoint : '$baseUrl$endpoint';
     final uri = Uri.parse(fullUrl);
     queryParameters.addAll(uri.queryParameters);
     return Uri.https(uri.authority, uri.path, queryParameters);
