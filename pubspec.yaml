@@ -14,7 +14,7 @@ dependencies:
   connectivity: 3.0.3
   logger: ^1.0.0
   resty: ^0.1.0
-  dio_http: ^5.0.0
+  dio_http: ^5.0.4
   http: ^0.13.3
   enum_to_string: ^2.0.1
 
