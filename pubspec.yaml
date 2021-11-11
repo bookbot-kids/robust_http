@@ -17,6 +17,7 @@ dependencies:
   dio_http: ^5.0.4
   http: ^0.13.3
   enum_to_string: ^2.0.1
+  singleton: ^0.0.2
 
 dev_dependencies:
   flutter_test:
