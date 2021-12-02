@@ -1,4 +1,4 @@
-import 'package:dio_http/dio_http.dart';
+import 'package:dio/dio.dart';
 import 'package:robust_http/http_log_adapter.dart';
 
 /// A log interceptor to print http request, response. Must be set [LogAdapter.shared.logger] first
