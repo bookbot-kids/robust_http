@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   intl: ^0.17.0
-  connectivity: 3.0.3
+  connectivity_plus: ^2.1.0
   logger: ^1.0.0
   resty: ^0.1.0
   dio_http: ^5.0.4
