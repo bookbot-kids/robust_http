@@ -104,7 +104,7 @@ class HTTP {
       {String localPath, bool includeHttpResponse = false}) async {
     for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
       try {
-        _httpClient.download(url,
+        return await _httpClient.download(url,
             localPath: localPath, includeHttpResponse: includeHttpResponse);
       } catch (error) {
         await _httpClient.handleException(error);

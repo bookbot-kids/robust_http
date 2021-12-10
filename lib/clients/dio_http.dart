@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/exceptions.dart';
+import 'package:robust_http/http_log_adapter.dart';
 import 'package:robust_http/robust_log.dart';
 
 class DioHttp extends BaseHttp {
@@ -41,10 +42,13 @@ class DioHttp extends BaseHttp {
         throw UnexpectedResponseException(error.requestOptions.path,
             error.response.statusCode, error.message);
       } else {
+        HttpLogAdapter.shared.logger?.i(
+            'DioError error on ${error.requestOptions.path} ${error.message}');
         throw UnknownException(
             ' Request error on ${error.requestOptions.path} ${error.message}');
       }
     } else {
+      HttpLogAdapter.shared.logger?.i('Unknown error: $error');
       throw UnknownException(error.message);
     }
   }
