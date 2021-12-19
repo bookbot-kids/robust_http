@@ -1,5 +1,6 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
+import 'package:enum_to_string/enum_to_string.dart';
 import 'package:flutter/widgets.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/exceptions.dart';
@@ -15,8 +16,18 @@ class DioHttp extends BaseHttp {
       connectTimeout: options["connectTimeout"] ?? 60000,
       receiveTimeout: options["receiveTimeout"] ?? 60000,
       headers: options["headers"] ?? {},
-      responseType: options["responseType"] ?? ResponseType.json,
     );
+
+    if (options["responseType"] != null) {
+      if (options["responseType"] is ResponseType) {
+        baseOptions.responseType = options["responseType"];
+      } else {
+        baseOptions.responseType = EnumToString.fromString(
+            ResponseType.values, options["responseType"]);
+      }
+    } else {
+      baseOptions.responseType = ResponseType.json;
+    }
 
     if (options["validateStatus"] != null) {
       baseOptions.validateStatus = options["validateStatus"];
