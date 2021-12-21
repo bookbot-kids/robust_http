@@ -14,7 +14,7 @@ dependencies:
   connectivity_plus: ^2.1.0
   logger: ^1.0.0
   resty: ^0.1.0
-  dio: ^4.0.5-beta1
+  dio: ^4.0.4
   http: ^0.13.3
   enum_to_string: ^2.0.1
   singleton: ^0.0.2
