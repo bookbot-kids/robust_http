@@ -107,7 +107,16 @@ class HTTP {
         return await _httpClient?.download(url,
             localPath: localPath, includeHttpResponse: includeHttpResponse);
       } catch (error) {
-        await _httpClient?.handleException(error);
+        try {
+          await _httpClient?.handleException(error);
+        } on ConnectivityException {
+          if (i == _httpRetries) {
+            rethrow;
+          } else {
+            // slow down in case network error
+            await Future.delayed(Duration(seconds: 1 * i));
+          }
+        }
       }
     }
     // Exhausted retries, so send back exception
@@ -133,7 +142,16 @@ class HTTP {
             data: data,
             includeHttpResponse: includeHttpResponse);
       } catch (error) {
-        await _httpClient?.handleException(error);
+        try {
+          await _httpClient?.handleException(error);
+        } on ConnectivityException {
+          if (i == _httpRetries) {
+            rethrow;
+          } else {
+            // slow down in case network error
+            await Future.delayed(Duration(seconds: 1 * i));
+          }
+        }
       }
     }
     // Exhausted retries, so send back exception
