@@ -15,12 +15,12 @@ import '../exceptions.dart';
 @Deprecated(
     'This class has some trouble with dynamic type in header & parameter')
 class SimpleHttp extends BaseHttp {
-  String baseUrl;
-  http.Client client;
-  Duration timeout;
+  late String baseUrl;
+  late http.Client client;
+  late Duration timeout;
 
   SimpleHttp(
-      {@required String baseUrl, Map<String, dynamic> options = const {}}) {
+      {required String baseUrl, Map<String, dynamic> options = const {}}) {
     this.baseUrl = baseUrl;
     client = http.Client();
     timeout = Duration(milliseconds: options["connectTimeout"] ?? 60000);
@@ -29,7 +29,7 @@ class SimpleHttp extends BaseHttp {
   @override
   Future<dynamic> request(
       HttpMethod method, String url, Map<String, dynamic> headers,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       dynamic data,
       bool includeHttpResponse = false}) async {
     final response = await _mapRequest(method, url,
@@ -41,8 +41,8 @@ class SimpleHttp extends BaseHttp {
       HttpLogAdapter.shared.logger
           ?.e('SimpleHttp Error: Reason: ${response.reasonPhrase}: ErrorCode: '
               '${response.statusCode}');
-      throw UnexpectedResponseException(response.request.url.toString(),
-          response.statusCode, response.reasonPhrase);
+      throw UnexpectedResponseException(response.request?.url.toString() ?? '',
+          response.statusCode, response.reasonPhrase ?? '');
     }
     HttpLogAdapter.shared.logger?.e('SimpleHttp Response: ${response.body}');
     return includeHttpResponse
@@ -51,7 +51,7 @@ class SimpleHttp extends BaseHttp {
   }
 
   Future<Response> _mapRequest(HttpMethod method, String url,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       dynamic data,
       Map<String, dynamic> headers = const {}}) {
     if (data is Map &&
@@ -89,9 +89,9 @@ class SimpleHttp extends BaseHttp {
     }
   }
 
-  Uri _buildUri(String endpoint, [Map<String, dynamic> query]) {
+  Uri _buildUri(String endpoint, [Map<String, dynamic> query = const {}]) {
     HttpLogAdapter.shared.logger?.d('SimpleHttp endpoint: $endpoint');
-    final queryParameters = query?.map((k, v) => MapEntry('$k', '$v')) ?? {};
+    final queryParameters = query.map((k, v) => MapEntry('$k', '$v'));
     final fullUrl =
         endpoint.startsWith('http') ? endpoint : '$baseUrl$endpoint';
     final uri = Uri.parse(fullUrl);
@@ -122,10 +122,10 @@ class SimpleHttp extends BaseHttp {
 
   @override
   Future<dynamic> download(String url,
-      {String localPath, bool includeHttpResponse = false}) async {
+      {String? localPath, bool includeHttpResponse = false}) async {
     var req = await client.get(Uri.parse(url));
     var bytes = req.bodyBytes;
-    File file = new File(localPath);
+    File file = new File(localPath ?? '');
     await file.writeAsBytes(bytes);
     return file;
   }

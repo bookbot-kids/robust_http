@@ -4,7 +4,7 @@ import 'package:robust_http/robust_http.dart';
 
 void main() {
   group('HTTP: ', () {
-    HTTP http;
+    late HTTP http;
     setUp(() {
       http = HTTP(
         'https://httpstat.us/',

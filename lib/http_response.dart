@@ -4,13 +4,13 @@ import 'package:robust_http/clients/base_http.dart';
 
 class SimpleResponse {
   /// Response body. may have been transformed
-  dynamic data;
+  late dynamic data;
 
   /// Response headers.
-  Headers headers;
+  late Headers headers;
 
   /// Http status code.
-  int statusCode;
+  late int statusCode;
 
   SimpleResponse.fromHttpResponse(Response httpResponse) {
     data = compute(parseJsonResponse, httpResponse.body);
@@ -45,7 +45,7 @@ class Headers {
   /// there is no header with the provided name, [:null:] will be
   /// returned. If the header has more than one value an exception is
   /// thrown.
-  String value(String name) => _map[name.trim().toLowerCase()];
+  String value(String name) => _map[name.trim().toLowerCase()] ?? '';
 
   void clear() {
     _map.clear();

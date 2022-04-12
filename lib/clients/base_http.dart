@@ -16,12 +16,12 @@ abstract class BaseHttp {
       bool includeHttpResponse = false});
 
   Future<dynamic> download(String url,
-      {String localPath, bool includeHttpResponse = false});
+      {String? localPath, bool includeHttpResponse = false});
 
   Future<void> handleException(dynamic error);
 }
 
-dynamic parseJsonResponse(String responseBody) {
+dynamic parseJsonResponse(String? responseBody) {
   return responseBody != null && responseBody.isNotEmpty
       ? jsonDecode(responseBody)
       : responseBody;

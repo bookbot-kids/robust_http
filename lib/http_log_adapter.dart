@@ -6,10 +6,10 @@ import 'package:singleton/singleton.dart';
 /// [Logger]:(https://pub.dev/packages/logger)
 class HttpLogAdapter {
   factory HttpLogAdapter() =>
-      Singleton.lazy(() => HttpLogAdapter._privateConstructor()).instance;
+      Singleton.lazy(() => HttpLogAdapter._privateConstructor());
   HttpLogAdapter._privateConstructor();
   static HttpLogAdapter shared = HttpLogAdapter();
 
   /// Logger instance to write log, must be set before using
-  Logger logger;
+  Logger? logger;
 }

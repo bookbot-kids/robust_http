@@ -24,7 +24,7 @@ class LoggerInterceptor extends Interceptor {
 
     logMessages.add(_formatKeyValue('method', options.method));
     logMessages
-        .add(_formatKeyValue('responseType', options.responseType?.toString()));
+        .add(_formatKeyValue('responseType', options.responseType.toString()));
     logMessages
         .add(_formatKeyValue('followRedirects', options.followRedirects));
     logMessages.add(_formatKeyValue('connectTimeout', options.connectTimeout));
@@ -66,31 +66,34 @@ class LoggerInterceptor extends Interceptor {
   }
 
   /// Format the http response into list of strings
-  List<String> _formatResponse(Response response) {
+  List<String> _formatResponse(Response? response) {
     List<String> logMessages = [];
-    logMessages.add(_formatKeyValue('uri', response.requestOptions?.uri));
-    logMessages.add(_formatKeyValue('statusCode', response.statusCode));
-    if (response.isRedirect == true) {
-      logMessages.add(_formatKeyValue('redirect', response.realUri));
+    if (response != null) {
+      logMessages.add(_formatKeyValue('uri', response.requestOptions.uri));
+      logMessages.add(_formatKeyValue('statusCode', response.statusCode));
+      if (response.isRedirect == true) {
+        logMessages.add(_formatKeyValue('redirect', response.realUri));
+      }
+      if (!response.headers.isEmpty) {
+        logMessages.add('headers:');
+        response.headers.forEach(
+            (key, v) => logMessages.add(_formatKeyValue(' $key', v.join(','))));
+      }
+      logMessages.add('Response Text:');
+      logMessages.addAll(_formatMessage(response.toString()));
     }
-    if (response.headers != null) {
-      logMessages.add('headers:');
-      response.headers.forEach(
-          (key, v) => logMessages.add(_formatKeyValue(' $key', v.join(','))));
-    }
-    logMessages.add('Response Text:');
-    logMessages.addAll(_formatMessage(response.toString()));
+
     return logMessages;
   }
 
   /// Format key and value into string
-  String _formatKeyValue(String key, Object v) {
+  String _formatKeyValue(String key, Object? v) {
     return '$key: $v';
   }
 
   /// Format the message into list of string
   List<String> _formatMessage(msg) {
-    return msg.toString().split('\n') ?? <String>[];
+    return msg.toString().split('\n');
   }
 
   /// Print log at debug level

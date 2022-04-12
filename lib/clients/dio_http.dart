@@ -1,16 +1,15 @@
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:enum_to_string/enum_to_string.dart';
-import 'package:flutter/widgets.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/exceptions.dart';
 import 'package:robust_http/http_log_adapter.dart';
 import 'package:robust_http/robust_log.dart';
 
 class DioHttp extends BaseHttp {
-  Dio _dio;
+  late Dio _dio;
 
-  DioHttp({@required String baseUrl, Map<String, dynamic> options = const {}}) {
+  DioHttp({required String baseUrl, Map<String, dynamic> options = const {}}) {
     final baseOptions = BaseOptions(
       baseUrl: baseUrl,
       connectTimeout: options["connectTimeout"] ?? 60000,
@@ -23,7 +22,8 @@ class DioHttp extends BaseHttp {
         baseOptions.responseType = options["responseType"];
       } else {
         baseOptions.responseType = EnumToString.fromString(
-            ResponseType.values, options["responseType"]);
+                ResponseType.values, options["responseType"]) ??
+            ResponseType.json;
       }
     } else {
       baseOptions.responseType = ResponseType.json;
@@ -51,7 +51,7 @@ class DioHttp extends BaseHttp {
         }
       } else if (error.response != null) {
         throw UnexpectedResponseException(error.requestOptions.path,
-            error.response.statusCode, error.message);
+            error.response?.statusCode ?? 0, error.message);
       } else {
         HttpLogAdapter.shared.logger?.i(
             'DioError error on ${error.requestOptions.path} ${error.message}');
@@ -67,7 +67,7 @@ class DioHttp extends BaseHttp {
   @override
   Future<dynamic> request(
       HttpMethod method, String url, Map<String, dynamic> headers,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       dynamic data,
       bool includeHttpResponse = false}) async {
     _dio.options.headers = headers;
@@ -79,7 +79,7 @@ class DioHttp extends BaseHttp {
 
   @override
   Future download(String url,
-      {String localPath, bool includeHttpResponse = false}) async {
+      {String? localPath, bool includeHttpResponse = false}) async {
     if (localPath != null) {
       return await _dio.download(url, localPath);
     }

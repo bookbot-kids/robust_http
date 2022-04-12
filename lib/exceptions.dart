@@ -4,7 +4,7 @@ import 'package:intl/intl.dart';
 class UnknownException implements Exception {
   String devDescription;
   UnknownException(this.devDescription);
-  String toString() => devDescription?.isNotEmpty == true
+  String toString() => devDescription.isNotEmpty == true
       ? 'Error $devDescription'
       : Intl.message("We're unsure what happened, but we're looking into it.",
           name: 'unknownException');

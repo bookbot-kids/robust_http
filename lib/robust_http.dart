@@ -8,7 +8,7 @@ import 'exceptions.dart';
 /// [Dio]:(https://pub.dev/packages/dio)
 class HTTP {
   int _httpRetries = 3;
-  BaseHttp _httpClient;
+  BaseHttp? _httpClient;
 
   /// Http request headers. The keys of initial headers will be converted to lowercase,
   /// for example 'Content-Type' will be converted to 'content-type'.
@@ -28,7 +28,7 @@ class HTTP {
   ///
   /// `logLevel` logLevel to print http log. Only accept `none`, `debug` or `error`. Default is `error`
   HTTP(String baseUrl,
-      [Map<String, dynamic> options = const {}, BaseHttp client]) {
+      [Map<String, dynamic> options = const {}, BaseHttp? client]) {
     _httpRetries = options["httpRetries"] ?? _httpRetries;
     if (client == null) {
       _httpClient = DioHttp(
@@ -45,7 +45,7 @@ class HTTP {
   /// Will timeout, check connectivity and retry until there is a response.
   /// Will handle most success or failure cases and will respond with either data or exception.
   Future<dynamic> head(String url,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       dynamic data,
       bool includeHttpResponse = false}) async {
     return request(HttpMethod.HEAD, url,
@@ -59,7 +59,7 @@ class HTTP {
   /// Will timeout, check connectivity and retry until there is a response.
   /// Will handle most success or failure cases and will respond with either data or exception.
   Future<dynamic> get(String url,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       bool includeHttpResponse = false}) async {
     return request(HttpMethod.GET, url,
         parameters: parameters, includeHttpResponse: includeHttpResponse);
@@ -70,7 +70,7 @@ class HTTP {
   /// Will timeout, check connectivity and retry until there is a response.
   /// Will handle most success or failure cases and will respond with either data or exception.
   Future<dynamic> post(String url,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       dynamic data,
       bool includeHttpResponse = false}) async {
     return request(HttpMethod.POST, url,
@@ -84,7 +84,7 @@ class HTTP {
   /// Will timeout, check connectivity and retry until there is a response.
   /// Will handle most success or failure cases and will respond with either data or exception.
   Future<dynamic> put(String url,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       dynamic data,
       bool includeHttpResponse = false}) async {
     return request(HttpMethod.PUT, url,
@@ -101,13 +101,13 @@ class HTTP {
   /// `includeHttpResponse`: true will return full http response (header, json data..), otherwise only return stream
   /// `url`: The file url
   Future<dynamic> download(String url,
-      {String localPath, bool includeHttpResponse = false}) async {
-    for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
+      {String? localPath, bool includeHttpResponse = false}) async {
+    for (var i = 1; i <= _httpRetries; i++) {
       try {
-        return await _httpClient.download(url,
+        return await _httpClient?.download(url,
             localPath: localPath, includeHttpResponse: includeHttpResponse);
       } catch (error) {
-        await _httpClient.handleException(error);
+        await _httpClient?.handleException(error);
       }
     }
     // Exhausted retries, so send back exception
@@ -123,17 +123,17 @@ class HTTP {
   /// `method`: http method like GET, PUT, POST, HEAD..
   /// `url`: The url path
   Future<dynamic> request(HttpMethod method, String url,
-      {Map<String, dynamic> parameters,
+      {Map<String, dynamic> parameters = const {},
       dynamic data,
       bool includeHttpResponse = false}) async {
-    for (var i = 1; i <= (_httpRetries ?? this._httpRetries); i++) {
+    for (var i = 1; i <= _httpRetries; i++) {
       try {
-        return await _httpClient.request(method, url, headers,
+        return await _httpClient?.request(method, url, headers,
             parameters: parameters,
             data: data,
             includeHttpResponse: includeHttpResponse);
       } catch (error) {
-        await _httpClient.handleException(error);
+        await _httpClient?.handleException(error);
       }
     }
     // Exhausted retries, so send back exception
