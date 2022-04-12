@@ -11,7 +11,13 @@ class UnknownException implements Exception {
 }
 
 class ConnectivityException implements Exception {
+  final String? message;
+  final bool hasConnectionStatus;
+
+  ConnectivityException(this.message, {this.hasConnectionStatus = false});
+
   String toString() =>
+      message ??
       Intl.message('You are not connected to the internet at this time.',
           name: 'notConnected');
 }

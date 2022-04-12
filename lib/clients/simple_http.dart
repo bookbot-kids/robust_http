@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart';
 import 'package:robust_http/clients/base_http.dart';
@@ -109,14 +108,14 @@ class SimpleHttp extends BaseHttp {
   @override
   Future<void> handleException(error) async {
     HttpLogAdapter.shared.logger?.e('SimpleHttp exception: $error');
-    if (error is UnexpectedResponseException) {
-      throw error;
-    } else if (error is TimeoutException) {
-      if (await Connectivity().checkConnectivity() == ConnectivityResult.none) {
-        throw ConnectivityException();
+    if (await validateConnectionError()) {
+      if (error is UnexpectedResponseException) {
+        throw error;
+      } else if (error is TimeoutException) {
+        throw error;
+      } else {
+        throw UnknownException(error.message);
       }
-    } else {
-      throw UnknownException(error.message);
     }
   }
 

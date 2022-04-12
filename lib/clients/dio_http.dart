@@ -1,4 +1,3 @@
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:robust_http/clients/base_http.dart';
@@ -8,6 +7,7 @@ import 'package:robust_http/robust_log.dart';
 
 class DioHttp extends BaseHttp {
   late Dio _dio;
+  var _validateNetworkOnError = true;
 
   DioHttp({required String baseUrl, Map<String, dynamic> options = const {}}) {
     final baseOptions = BaseOptions(
@@ -33,6 +33,10 @@ class DioHttp extends BaseHttp {
       baseOptions.validateStatus = options["validateStatus"];
     }
 
+    if (options["validateNetworkOnError"] != null) {
+      _validateNetworkOnError = options["validateNetworkOnError"];
+    }
+
     _dio = new Dio(baseOptions);
     var logLevel = options['logLevel'];
     if (logLevel != 'none') {
@@ -42,25 +46,25 @@ class DioHttp extends BaseHttp {
 
   @override
   Future<void> handleException(error) async {
-    if (error is DioError) {
-      if (error.type == DioErrorType.connectTimeout ||
-          error.type == DioErrorType.receiveTimeout) {
-        if (await Connectivity().checkConnectivity() ==
-            ConnectivityResult.none) {
-          throw ConnectivityException();
+    if (await validateConnectionError(
+        validateNetwork: _validateNetworkOnError)) {
+      if (error is DioError) {
+        if (error.type == DioErrorType.connectTimeout ||
+            error.type == DioErrorType.receiveTimeout) {
+          throw error;
+        } else if (error.response != null) {
+          throw UnexpectedResponseException(error.requestOptions.path,
+              error.response?.statusCode ?? 0, error.message);
+        } else {
+          HttpLogAdapter.shared.logger?.i(
+              'DioError error on ${error.requestOptions.path} ${error.message}');
+          throw UnknownException(
+              ' Request error on ${error.requestOptions.path} ${error.message}');
         }
-      } else if (error.response != null) {
-        throw UnexpectedResponseException(error.requestOptions.path,
-            error.response?.statusCode ?? 0, error.message);
       } else {
-        HttpLogAdapter.shared.logger?.i(
-            'DioError error on ${error.requestOptions.path} ${error.message}');
-        throw UnknownException(
-            ' Request error on ${error.requestOptions.path} ${error.message}');
+        HttpLogAdapter.shared.logger?.i('Unknown error: $error');
+        throw UnknownException(error.message);
       }
-    } else {
-      HttpLogAdapter.shared.logger?.i('Unknown error: $error');
-      throw UnknownException(error.message);
     }
   }
 
