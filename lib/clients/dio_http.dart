@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:dio/dio.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:robust_http/clients/base_http.dart';
@@ -89,8 +91,8 @@ class DioHttp extends BaseHttp {
       final files = data.remove('files') as List<FileInfo>;
       final multipartFiles = <MultipartFile>[];
       for (final info in files) {
-        final item = await MultipartFile.fromFile(
-          info.localPath,
+        final item = MultipartFile.fromBytes(
+          File(info.localPath).readAsBytesSync(),
           filename: info.fileName,
           contentType: info.mimeType != null
               ? MediaType.parse(info.mimeType!)
