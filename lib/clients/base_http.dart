@@ -12,10 +12,14 @@ extension $HttpMethod on HttpMethod {
 
 abstract class BaseHttp {
   Future<dynamic> request(
-      HttpMethod method, String url, Map<String, dynamic> headers,
-      {Map<String, dynamic> parameters,
-      dynamic data,
-      bool includeHttpResponse = false});
+    HttpMethod method,
+    String url,
+    Map<String, dynamic> headers, {
+    Map<String, dynamic> parameters,
+    dynamic data,
+    bool includeHttpResponse = false,
+    bool isMultipart = false,
+  });
 
   Future<dynamic> download(String url,
       {String? localPath, bool includeHttpResponse = false});

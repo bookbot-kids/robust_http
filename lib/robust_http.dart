@@ -69,28 +69,42 @@ class HTTP {
   /// You can pass the full url, or the path after the baseUrl.
   /// Will timeout, check connectivity and retry until there is a response.
   /// Will handle most success or failure cases and will respond with either data or exception.
-  Future<dynamic> post(String url,
-      {Map<String, dynamic> parameters = const {},
-      dynamic data,
-      bool includeHttpResponse = false}) async {
-    return request(HttpMethod.POST, url,
-        parameters: parameters,
-        data: data,
-        includeHttpResponse: includeHttpResponse);
+  Future<dynamic> post(
+    String url, {
+    Map<String, dynamic> parameters = const {},
+    dynamic data,
+    bool includeHttpResponse = false,
+    bool isMultipart = false,
+  }) async {
+    return request(
+      HttpMethod.POST,
+      url,
+      parameters: parameters,
+      data: data,
+      includeHttpResponse: includeHttpResponse,
+      isMultipart: isMultipart,
+    );
   }
 
   /// Does a http PUT (with optional overrides).
   /// You can pass the full url, or the path after the baseUrl.
   /// Will timeout, check connectivity and retry until there is a response.
   /// Will handle most success or failure cases and will respond with either data or exception.
-  Future<dynamic> put(String url,
-      {Map<String, dynamic> parameters = const {},
-      dynamic data,
-      bool includeHttpResponse = false}) async {
-    return request(HttpMethod.PUT, url,
-        parameters: parameters,
-        data: data,
-        includeHttpResponse: includeHttpResponse);
+  Future<dynamic> put(
+    String url, {
+    Map<String, dynamic> parameters = const {},
+    dynamic data,
+    bool includeHttpResponse = false,
+    bool isMultipart = false,
+  }) async {
+    return request(
+      HttpMethod.PUT,
+      url,
+      parameters: parameters,
+      data: data,
+      includeHttpResponse: includeHttpResponse,
+      isMultipart: isMultipart,
+    );
   }
 
   /// Download file, and manage the many network problems that can happen.
@@ -134,13 +148,19 @@ class HTTP {
   Future<dynamic> request(HttpMethod method, String url,
       {Map<String, dynamic> parameters = const {},
       dynamic data,
-      bool includeHttpResponse = false}) async {
+      bool includeHttpResponse = false,
+      bool isMultipart = false}) async {
     for (var i = 1; i <= _httpRetries; i++) {
       try {
-        return await _httpClient?.request(method, url, headers,
-            parameters: parameters,
-            data: data,
-            includeHttpResponse: includeHttpResponse);
+        return await _httpClient?.request(
+          method,
+          url,
+          headers,
+          parameters: parameters,
+          data: data,
+          includeHttpResponse: includeHttpResponse,
+          isMultipart: isMultipart,
+        );
       } catch (error) {
         try {
           await _httpClient?.handleException(error);

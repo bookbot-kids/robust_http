@@ -27,10 +27,14 @@ class SimpleHttp extends BaseHttp {
 
   @override
   Future<dynamic> request(
-      HttpMethod method, String url, Map<String, dynamic> headers,
-      {Map<String, dynamic> parameters = const {},
-      dynamic data,
-      bool includeHttpResponse = false}) async {
+    HttpMethod method,
+    String url,
+    Map<String, dynamic> headers, {
+    Map<String, dynamic> parameters = const {},
+    dynamic data,
+    bool includeHttpResponse = false,
+    bool isMultipart = false,
+  }) async {
     final response = await _mapRequest(method, url,
             parameters: parameters, data: data, headers: headers)
         .timeout(timeout,

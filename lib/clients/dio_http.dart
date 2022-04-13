@@ -70,15 +70,43 @@ class DioHttp extends BaseHttp {
 
   @override
   Future<dynamic> request(
-      HttpMethod method, String url, Map<String, dynamic> headers,
-      {Map<String, dynamic> parameters = const {},
-      dynamic data,
-      bool includeHttpResponse = false}) async {
+    HttpMethod method,
+    String url,
+    Map<String, dynamic> headers, {
+    Map<String, dynamic> parameters = const {},
+    dynamic data,
+    bool includeHttpResponse = false,
+    bool isMultipart = false,
+  }) async {
     _dio.options.headers = headers;
     _dio.options.method = method.name;
-    final response =
-        await _dio.request(url, queryParameters: parameters, data: data);
-    return includeHttpResponse ? response : response.data;
+    // multipart upload
+    if (isMultipart &&
+        data is Map<String, dynamic> &&
+        data.containsKey('files')) {
+      final files = data.remove('files') as List;
+      assert(files.length > 0 && files.length % 2 == 0);
+      final multipartFiles = <MultipartFile>[];
+      for (var i = 0; i < files.length; i += 2) {
+        multipartFiles.add(
+            await MultipartFile.fromFile(files[i], filename: files[i + 1]));
+      }
+
+      if (multipartFiles.length == 1) {
+        data['file'] = multipartFiles.first;
+      } else {
+        data['files'] = multipartFiles;
+      }
+
+      final formData = FormData.fromMap(data);
+      final response =
+          await _dio.request(url, queryParameters: parameters, data: formData);
+      return includeHttpResponse ? response : response.data;
+    } else {
+      final response =
+          await _dio.request(url, queryParameters: parameters, data: data);
+      return includeHttpResponse ? response : response.data;
+    }
   }
 
   @override
