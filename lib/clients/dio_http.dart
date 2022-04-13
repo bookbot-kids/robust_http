@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:enum_to_string/enum_to_string.dart';
-import 'package:mime_type/mime_type.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/exceptions.dart';
+import 'package:robust_http/file_info.dart';
 import 'package:robust_http/http_log_adapter.dart';
 import 'package:robust_http/robust_log.dart';
 import 'package:http_parser/http_parser.dart';
@@ -86,15 +86,18 @@ class DioHttp extends BaseHttp {
     if (isMultipart &&
         data is Map<String, dynamic> &&
         data.containsKey('files')) {
-      final files = data.remove('files') as List;
-      assert(files.length > 0 && files.length % 2 == 0);
+      final files = data.remove('files') as List<FileInfo>;
       final multipartFiles = <MultipartFile>[];
-      for (var i = 0; i < files.length; i += 2) {
-        final localPath = files[i];
-        final fileName = files[i + 1];
-        final mimeType = mime(localPath) ?? '*/*';
-        multipartFiles.add(await MultipartFile.fromFile(localPath,
-            filename: fileName, contentType: MediaType.parse(mimeType)));
+      for (final info in files) {
+        final item = await MultipartFile.fromFile(
+          info.localPath,
+          filename: info.fileName,
+          contentType: info.mimeType != null
+              ? MediaType.parse(info.mimeType!)
+              : MediaType('application', 'octet-stream'),
+          headers: info.headers,
+        );
+        multipartFiles.add(item);
       }
 
       if (multipartFiles.length == 1) {
