@@ -1,9 +1,11 @@
 import 'package:dio/dio.dart';
 import 'package:enum_to_string/enum_to_string.dart';
+import 'package:mime_type/mime_type.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/exceptions.dart';
 import 'package:robust_http/http_log_adapter.dart';
 import 'package:robust_http/robust_log.dart';
+import 'package:http_parser/http_parser.dart';
 
 class DioHttp extends BaseHttp {
   late Dio _dio;
@@ -88,8 +90,11 @@ class DioHttp extends BaseHttp {
       assert(files.length > 0 && files.length % 2 == 0);
       final multipartFiles = <MultipartFile>[];
       for (var i = 0; i < files.length; i += 2) {
-        multipartFiles.add(
-            await MultipartFile.fromFile(files[i], filename: files[i + 1]));
+        final localPath = files[i];
+        final fileName = files[i + 1];
+        final mimeType = mime(localPath) ?? '*/*';
+        multipartFiles.add(await MultipartFile.fromFile(localPath,
+            filename: fileName, contentType: MediaType.parse(mimeType)));
       }
 
       if (multipartFiles.length == 1) {
