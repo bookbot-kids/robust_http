@@ -27,12 +27,12 @@ class HTTP {
   /// `headers` http headers
   ///
   /// `logLevel` logLevel to print http log. Only accept `none`, `debug` or `error`. Default is `error`
-  HTTP(String baseUrl,
+  HTTP(String? baseUrl,
       [Map<String, dynamic> options = const {}, BaseHttp? client]) {
     _httpRetries = options["httpRetries"] ?? _httpRetries;
     if (client == null) {
       _httpClient = DioHttp(
-        baseUrl: baseUrl,
+        baseUrl: baseUrl ?? '',
         options: options,
       );
     } else {
