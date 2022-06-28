@@ -33,19 +33,22 @@ class ConnectionHelper {
   }
 
   /// Whether the device has any internet connection
-  Future<bool> hasInternetConnection() async {
-    return await InternetConnectionChecker().hasConnection;
+  Future<bool> hasInternetConnection({int? timeoutInSeconds}) async {
+    return await (timeoutInSeconds != null
+            ? InternetConnectionChecker.createInstance(
+                checkTimeout: Duration(seconds: timeoutInSeconds),
+              )
+            : InternetConnectionChecker())
+        .hasConnection;
   }
 
   /// Listen to the connection status changes
-  void listenStateChanged(
-    void Function(ConnectivityResult)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    final subscription = Connectivity().onConnectivityChanged.listen(onData,
-        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+  void listenStateChanged(void Function(bool) listener) {
+    final subscription = Connectivity().onConnectivityChanged.listen((status) {
+      listener(status == ConnectivityResult.wifi ||
+          status == ConnectivityResult.mobile ||
+          status == ConnectivityResult.ethernet);
+    });
     _stateSubscriptions.add(subscription);
   }
 
@@ -57,17 +60,14 @@ class ConnectionHelper {
   }
 
   /// Listen to the internet connection status changes
-  void listenInternetChanged(
-    void Function(InternetConnectionStatus)? onData, {
-    Function? onError,
-    void Function()? onDone,
-    bool? cancelOnError,
-  }) {
-    final subscription = InternetConnectionChecker().onStatusChange.listen(
-        onData,
-        onError: onError,
-        onDone: onDone,
-        cancelOnError: cancelOnError);
+  void listenInternetChanged(void Function(bool) listener,
+      {int delayedInSeconds = 60, int timeoutInSeconds = 10}) {
+    final subscription = InternetConnectionChecker.createInstance(
+      checkInterval: Duration(seconds: delayedInSeconds),
+      checkTimeout: Duration(seconds: timeoutInSeconds),
+    ).onStatusChange.listen((event) {
+      listener(event == InternetConnectionStatus.connected);
+    });
     _internetSubscriptions.add(subscription);
   }
 
