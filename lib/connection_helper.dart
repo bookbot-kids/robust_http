@@ -1,9 +1,21 @@
+import 'dart:async';
+
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:singleton/singleton.dart';
 
 class ConnectionHelper {
+  factory ConnectionHelper() =>
+      Singleton.lazy(() => ConnectionHelper._privateConstructor());
+  ConnectionHelper._privateConstructor();
+  static ConnectionHelper shared = ConnectionHelper();
+
+  static final _stateSubscriptions = <StreamSubscription<ConnectivityResult>>[];
+  static final _internetSubscriptions =
+      <StreamSubscription<InternetConnectionStatus>>[];
+
   /// Whether the device has any connection status. By default does not include bluetooth in the check
-  static Future<bool> hasConnection({bool includeBluetooth = false}) async {
+  Future<bool> hasConnection({bool includeBluetooth = false}) async {
     final status = await Connectivity().checkConnectivity();
     return status == ConnectivityResult.wifi ||
         status == ConnectivityResult.mobile ||
@@ -11,17 +23,68 @@ class ConnectionHelper {
         (includeBluetooth && status == ConnectivityResult.bluetooth);
   }
 
-  static Future<bool> hasWifiConnection() async {
+  Future<bool> hasWifiConnection() async {
     return await Connectivity().checkConnectivity() == ConnectivityResult.wifi;
   }
 
-  static Future<bool> hasMobileConnection() async {
+  Future<bool> hasMobileConnection() async {
     return await Connectivity().checkConnectivity() ==
         ConnectivityResult.mobile;
   }
 
   /// Whether the device has any internet connection
-  static Future<bool> hasInternetConnection() async {
+  Future<bool> hasInternetConnection() async {
     return await InternetConnectionChecker().hasConnection;
+  }
+
+  /// Listen to the connection status changes
+  void listenStateChanged(
+    void Function(ConnectivityResult)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    final subscription = Connectivity().onConnectivityChanged.listen(onData,
+        onError: onError, onDone: onDone, cancelOnError: cancelOnError);
+    _stateSubscriptions.add(subscription);
+  }
+
+  /// Unlisten to the connection status changes
+  void unlistenStateChanged() {
+    _stateSubscriptions.forEach((sub) {
+      sub.cancel();
+    });
+  }
+
+  /// Listen to the internet connection status changes
+  void listenInternetChanged(
+    void Function(InternetConnectionStatus)? onData, {
+    Function? onError,
+    void Function()? onDone,
+    bool? cancelOnError,
+  }) {
+    final subscription = InternetConnectionChecker().onStatusChange.listen(
+        onData,
+        onError: onError,
+        onDone: onDone,
+        cancelOnError: cancelOnError);
+    _internetSubscriptions.add(subscription);
+  }
+
+  /// Unlisten to the internet connection status changes
+  void unlistenInternetChanged() {
+    _internetSubscriptions.forEach((sub) {
+      sub.cancel();
+    });
+  }
+
+  /// Clear all the state subscriptions
+  void clearStateSubscriptions() {
+    _stateSubscriptions.clear();
+  }
+
+  /// Clear all the internet subscriptions
+  void clearInternetSubscriptions() {
+    _internetSubscriptions.clear();
   }
 }

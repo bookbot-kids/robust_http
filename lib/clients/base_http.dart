@@ -27,11 +27,11 @@ abstract class BaseHttp {
   Future<void> handleException(dynamic error);
 
   Future<bool> validateConnectionError({bool validateNetwork = true}) async {
-    if (!await ConnectionHelper.hasConnection()) {
+    if (!await ConnectionHelper.shared.hasConnection()) {
       throw ConnectivityException('The connection is turn off',
           hasConnectionStatus: false);
     } else if (validateNetwork &&
-        !await ConnectionHelper.hasInternetConnection()) {
+        !await ConnectionHelper.shared.hasInternetConnection()) {
       throw ConnectivityException(
           'The connection is turn on but there is no internet connection',
           hasConnectionStatus: true);
