@@ -55,7 +55,8 @@ class DioHttp extends BaseHttp {
       if (error is DioError) {
         if (error.type == DioErrorType.connectTimeout ||
             error.type == DioErrorType.receiveTimeout) {
-          throw error;
+          throw NetworkTimeoutException(
+              'Request ${error.requestOptions.path} timeout [${error.response?.statusCode}] ${error.message}');
         } else if (error.response != null) {
           throw UnexpectedResponseException(error.requestOptions.path,
               error.response?.statusCode ?? 0, error.message);

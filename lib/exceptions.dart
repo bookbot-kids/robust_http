@@ -45,3 +45,12 @@ class SyncDataException implements Exception {
       'There was an error while syncing data. Please try again later.',
       name: 'syncDataFailure');
 }
+
+class NetworkTimeoutException implements Exception {
+  String errorMessage;
+  NetworkTimeoutException(this.errorMessage);
+  String toString() => errorMessage.isNotEmpty
+      ? errorMessage
+      : Intl.message('The request timed out, please try again later.',
+          name: 'networkTimeout');
+}
