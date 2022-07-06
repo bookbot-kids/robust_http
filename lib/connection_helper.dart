@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
+import 'package:flutter/foundation.dart';
 import 'package:internet_connection_checker/internet_connection_checker.dart';
 import 'package:singleton/singleton.dart';
 
@@ -34,6 +35,7 @@ class ConnectionHelper {
 
   /// Whether the device has any internet connection
   Future<bool> hasInternetConnection({int? timeoutInSeconds}) async {
+    if (kIsWeb) return true;
     return await (timeoutInSeconds != null
             ? InternetConnectionChecker.createInstance(
                 checkTimeout: Duration(seconds: timeoutInSeconds),
@@ -62,6 +64,7 @@ class ConnectionHelper {
   /// Listen to the internet connection status changes
   void listenInternetChanged(void Function(bool) listener,
       {int delayedInSeconds = 60, int timeoutInSeconds = 10}) {
+    if (kIsWeb) return;
     final subscription = InternetConnectionChecker.createInstance(
       checkInterval: Duration(seconds: delayedInSeconds),
       checkTimeout: Duration(seconds: timeoutInSeconds),
