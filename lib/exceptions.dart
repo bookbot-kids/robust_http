@@ -32,8 +32,10 @@ class UnexpectedResponseException implements Exception {
   String url;
   int statusCode;
   String errorMessage;
+  dynamic data;
 
-  UnexpectedResponseException(this.url, this.statusCode, this.errorMessage);
+  UnexpectedResponseException(this.url, this.statusCode, this.errorMessage,
+      {this.data});
   String toString() =>
       'Request error [$statusCode] at $url, message: $errorMessage';
 }
