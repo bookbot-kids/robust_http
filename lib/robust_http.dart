@@ -171,6 +171,15 @@ class HTTP {
             // slow down in case network error
             await Future.delayed(Duration(seconds: 1 * i));
           }
+        } on NetworkTimeoutException {
+          if (i == _httpRetries) {
+            rethrow;
+          } else {
+            // slow down in case network error
+            await Future.delayed(Duration(seconds: 1 * i));
+          }
+        } on Exception {
+          rethrow;
         }
       }
     }
