@@ -37,7 +37,7 @@ class UnexpectedResponseException implements Exception {
   UnexpectedResponseException(this.url, this.statusCode, this.errorMessage,
       {this.data});
   String toString() =>
-      'Request error [$statusCode] at $url, message: $errorMessage';
+      'Request error [$statusCode] at $url, message: $errorMessage, data: $data';
 }
 
 class SyncDataException implements Exception {
