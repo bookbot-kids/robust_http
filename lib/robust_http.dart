@@ -7,7 +7,7 @@ import 'exceptions.dart';
 ///
 /// [Dio]:(https://pub.dev/packages/dio)
 class HTTP {
-  int _httpRetries = 3;
+  int _httpRetries = 2;
   BaseHttp? _httpClient;
 
   /// Http request headers. The keys of initial headers will be converted to lowercase,
@@ -120,15 +120,17 @@ class HTTP {
       try {
         return await _httpClient?.download(url,
             localPath: localPath, includeHttpResponse: includeHttpResponse);
-      } catch (error) {
-        try {
-          await _httpClient?.handleException(error);
-        } on ConnectivityException {
+      } catch (e) {
+        // don't retry in this case
+        if ((e is UnexpectedResponseException && e.statusCode >= 500) ||
+            e is ConnectivityException) {
+          rethrow;
+        } else {
           if (i == _httpRetries) {
             rethrow;
           } else {
-            // slow down in case network error
-            await Future.delayed(Duration(seconds: 1 * i));
+            // slow down on next retry
+            await Future.delayed(Duration(seconds: 2 * i));
           }
         }
       }
@@ -164,12 +166,18 @@ class HTTP {
       } catch (error) {
         try {
           await _httpClient?.handleException(error);
-        } on ConnectivityException {
-          if (i == _httpRetries) {
+        } catch (e) {
+          // don't retry in this case
+          if ((e is UnexpectedResponseException && e.statusCode >= 500) ||
+              e is ConnectivityException) {
             rethrow;
           } else {
-            // slow down in case network error
-            await Future.delayed(Duration(seconds: 1 * i));
+            if (i == _httpRetries) {
+              rethrow;
+            } else {
+              // slow down on next retry
+              await Future.delayed(Duration(seconds: 2 * i));
+            }
           }
         }
       }
