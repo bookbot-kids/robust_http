@@ -107,6 +107,27 @@ class HTTP {
     );
   }
 
+  /// Does a http PATCH (with optional overrides).
+  /// You can pass the full url, or the path after the baseUrl.
+  /// Will timeout, check connectivity and retry until there is a response.
+  /// Will handle most success or failure cases and will respond with either data or exception.
+  Future<dynamic> patch(
+    String url, {
+    Map<String, dynamic> parameters = const {},
+    dynamic data,
+    bool includeHttpResponse = false,
+    bool isMultipart = false,
+  }) async {
+    return request(
+      HttpMethod.PATCH,
+      url,
+      parameters: parameters,
+      data: data,
+      includeHttpResponse: includeHttpResponse,
+      isMultipart: isMultipart,
+    );
+  }
+
   /// Download file, and manage the many network problems that can happen.
   /// Will only throw an exception when it's sure that there is no internet connection,
   /// exhausts its retries or gets an unexpected server response

@@ -16,11 +16,11 @@ void main() {
     });
 
     test('Test full url', () async {
-      expect((await http.get('https://httpstat.us/200')), equals(""));
+      expect((await http.get('https://httpstat.us/200')), equals("200 OK"));
     });
 
     test('Test path', () async {
-      expect((await http.get('200')), equals(""));
+      expect((await http.get('200')), equals("200 OK"));
     });
 
     test('Test json header', () async {
