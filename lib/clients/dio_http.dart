@@ -53,13 +53,14 @@ class DioHttp extends BaseHttp {
     if (await validateConnectionError(
         validateNetwork: _validateNetworkOnError)) {
       if (error is DioError) {
-        if (error.type == DioErrorType.connectTimeout ||
+        if (error.type == DioErrorType.connectionTimeout ||
+            error.type == DioErrorType.sendTimeout ||
             error.type == DioErrorType.receiveTimeout) {
           throw NetworkTimeoutException(
               'Request ${error.requestOptions.path} timeout [${error.response?.statusCode}] ${error.message}');
         } else if (error.response != null) {
           throw UnexpectedResponseException(error.requestOptions.path,
-              error.response?.statusCode ?? 0, error.message,
+              error.response?.statusCode ?? 0, error.message ?? '',
               data: error.response!.data);
         } else {
           HttpLogAdapter.shared.logger?.i(
