@@ -16,8 +16,10 @@ class DioHttp extends BaseHttp {
   DioHttp({required String baseUrl, Map<String, dynamic> options = const {}}) {
     final baseOptions = BaseOptions(
       baseUrl: baseUrl,
-      connectTimeout: options["connectTimeout"] ?? 60000,
-      receiveTimeout: options["receiveTimeout"] ?? 60000,
+      connectTimeout:
+          Duration(milliseconds: options["connectTimeout"] ?? 60000),
+      receiveTimeout:
+          Duration(milliseconds: options["receiveTimeout"] ?? 60000),
       headers: options["headers"] ?? {},
     );
 
