@@ -41,7 +41,7 @@ class LoggerInterceptor extends Interceptor {
 
   @override
   void onError(
-    DioError err,
+    DioException err,
     ErrorInterceptorHandler handler,
   ) async {
     logMessages.add('*** DioError ***:');

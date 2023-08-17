@@ -54,10 +54,10 @@ class DioHttp extends BaseHttp {
   Future<void> handleException(error) async {
     if (await validateConnectionError(
         validateNetwork: _validateNetworkOnError)) {
-      if (error is DioError) {
-        if (error.type == DioErrorType.connectionTimeout ||
-            error.type == DioErrorType.sendTimeout ||
-            error.type == DioErrorType.receiveTimeout) {
+      if (error is DioException) {
+        if (error.type == DioExceptionType.connectionTimeout ||
+            error.type == DioExceptionType.sendTimeout ||
+            error.type == DioExceptionType.receiveTimeout) {
           throw NetworkTimeoutException(
               'Request ${error.requestOptions.path} timeout [${error.response?.statusCode}] ${error.message}');
         } else if (error.response != null) {
