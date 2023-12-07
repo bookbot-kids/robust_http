@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
+import 'package:dio/io.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/exceptions.dart';
@@ -43,7 +44,13 @@ class DioHttp extends BaseHttp {
       _validateNetworkOnError = options["validateNetworkOnError"];
     }
 
+    final client = HttpClient()
+      ..idleTimeout = Duration(seconds: options["idleTimeout"] ?? 3)
+      ..maxConnectionsPerHost = options["maxConnectionsPerHost"] ?? 20;
+
     _dio = new Dio(baseOptions);
+    _dio.httpClientAdapter = IOHttpClientAdapter()
+      ..createHttpClient = () => client;
     var logLevel = options['logLevel'];
     if (logLevel != 'none') {
       _dio.interceptors.add(LoggerInterceptor(logLevel == 'debug'));
