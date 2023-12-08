@@ -45,8 +45,11 @@ class DioHttp extends BaseHttp {
     }
 
     final client = HttpClient()
-      ..idleTimeout = Duration(seconds: options["idleTimeout"] ?? 3)
-      ..maxConnectionsPerHost = options["maxConnectionsPerHost"] ?? 20;
+      ..idleTimeout = Duration(seconds: options["idleTimeout"] ?? 3);
+
+    if (options["maxConnectionsPerHost"] != null) {
+      client.maxConnectionsPerHost = options["maxConnectionsPerHost"];
+    }
 
     _dio = new Dio(baseOptions);
     _dio.httpClientAdapter = IOHttpClientAdapter()
