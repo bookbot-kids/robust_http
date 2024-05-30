@@ -11,7 +11,8 @@ class ConnectionHelper {
   ConnectionHelper._privateConstructor();
   static ConnectionHelper shared = ConnectionHelper();
 
-  static final _stateSubscriptions = <StreamSubscription<ConnectivityResult>>[];
+  static final _stateSubscriptions =
+      <StreamSubscription<List<ConnectivityResult>>>[];
   static final _internetSubscriptions =
       <StreamSubscription<InternetConnectionStatus>>[];
 
