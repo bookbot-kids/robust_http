@@ -18,20 +18,23 @@ class ConnectionHelper {
 
   /// Whether the device has any connection status. By default does not include bluetooth in the check
   Future<bool> hasConnection({bool includeBluetooth = false}) async {
-    final status = await Connectivity().checkConnectivity();
-    return status == ConnectivityResult.wifi ||
-        status == ConnectivityResult.mobile ||
-        status == ConnectivityResult.ethernet ||
-        (includeBluetooth && status == ConnectivityResult.bluetooth);
+    final statuses = await Connectivity().checkConnectivity();
+    return statuses.any((status) {
+      return status == ConnectivityResult.wifi ||
+          status == ConnectivityResult.mobile ||
+          status == ConnectivityResult.ethernet ||
+          (includeBluetooth && status == ConnectivityResult.bluetooth);
+    });
   }
 
   Future<bool> hasWifiConnection() async {
-    return await Connectivity().checkConnectivity() == ConnectivityResult.wifi;
+    return (await Connectivity().checkConnectivity())
+        .any((status) => status == ConnectivityResult.wifi);
   }
 
   Future<bool> hasMobileConnection() async {
-    return await Connectivity().checkConnectivity() ==
-        ConnectivityResult.mobile;
+    return (await Connectivity().checkConnectivity())
+        .any((status) => status == ConnectivityResult.mobile);
   }
 
   /// Whether the device has any internet connection
@@ -47,10 +50,15 @@ class ConnectionHelper {
 
   /// Listen to the connection status changes
   void listenStateChanged(void Function(bool) listener) {
-    final subscription = Connectivity().onConnectivityChanged.listen((status) {
-      listener(status == ConnectivityResult.wifi ||
-          status == ConnectivityResult.mobile ||
-          status == ConnectivityResult.ethernet);
+    final subscription =
+        Connectivity().onConnectivityChanged.listen((statuses) {
+      final isConnected = statuses.any((status) {
+        return status == ConnectivityResult.wifi ||
+            status == ConnectivityResult.mobile ||
+            status == ConnectivityResult.ethernet;
+      });
+
+      listener(isConnected);
     });
     _stateSubscriptions.add(subscription);
   }
