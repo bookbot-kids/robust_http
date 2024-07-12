@@ -13,10 +13,19 @@ import 'package:http_parser/http_parser.dart';
 class DioHttp extends BaseHttp {
   late Dio _dio;
   var _validateNetworkOnError = true;
+  var _proxyUrl = '';
 
   DioHttp({required String baseUrl, Map<String, dynamic> options = const {}}) {
+    _proxyUrl = options["proxyUrl"] ?? '';
+    final String targetBaseUrl;
+    if (_proxyUrl.isNotEmpty && baseUrl.isNotEmpty) {
+      targetBaseUrl = '$_proxyUrl/$baseUrl';
+    } else {
+      targetBaseUrl = baseUrl;
+    }
+
     final baseOptions = BaseOptions(
-      baseUrl: baseUrl,
+      baseUrl: targetBaseUrl,
       connectTimeout:
           Duration(milliseconds: options["connectTimeout"] ?? 60000),
       receiveTimeout:
@@ -99,6 +108,13 @@ class DioHttp extends BaseHttp {
   }) async {
     _dio.options.headers = headers;
     _dio.options.method = method.name;
+    final String targetUrl;
+    if (url.startsWith('http') && _proxyUrl.isNotEmpty) {
+      targetUrl = '$_proxyUrl/$url';
+    } else {
+      targetUrl = url;
+    }
+
     // multipart upload
     if (isMultipart &&
         data is Map<String, dynamic> &&
@@ -124,12 +140,13 @@ class DioHttp extends BaseHttp {
       }
 
       final formData = FormData.fromMap(data);
-      final response =
-          await _dio.request(url, queryParameters: parameters, data: formData);
+
+      final response = await _dio.request(targetUrl,
+          queryParameters: parameters, data: formData);
       return includeHttpResponse ? response : response.data;
     } else {
-      final response =
-          await _dio.request(url, queryParameters: parameters, data: data);
+      final response = await _dio.request(targetUrl,
+          queryParameters: parameters, data: data);
       return includeHttpResponse ? response : response.data;
     }
   }
@@ -137,11 +154,18 @@ class DioHttp extends BaseHttp {
   @override
   Future download(String url,
       {String? localPath, bool includeHttpResponse = false}) async {
-    if (localPath != null) {
-      return await _dio.download(url, localPath);
+    final String targetUrl;
+    if (url.startsWith('http') && _proxyUrl.isNotEmpty) {
+      targetUrl = '$_proxyUrl/$url';
+    } else {
+      targetUrl = url;
     }
 
-    final response = await _dio.get<ResponseBody>(url,
+    if (localPath != null) {
+      return await _dio.download(targetUrl, localPath);
+    }
+
+    final response = await _dio.get<ResponseBody>(targetUrl,
         options: Options(responseType: ResponseType.stream));
     return includeHttpResponse == true ? response : response.data;
   }
