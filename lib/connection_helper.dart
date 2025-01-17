@@ -40,12 +40,11 @@ class ConnectionHelper {
   /// Whether the device has any internet connection
   Future<bool> hasInternetConnection({int? timeoutInSeconds}) async {
     if (kIsWeb) return true;
-    return await (timeoutInSeconds != null
-            ? InternetConnectionChecker.createInstance(
-                checkTimeout: Duration(seconds: timeoutInSeconds),
-              )
-            : InternetConnectionChecker())
-        .hasConnection;
+    return await (InternetConnectionChecker.createInstance(
+      checkTimeout: timeoutInSeconds != null
+          ? Duration(seconds: timeoutInSeconds)
+          : InternetConnectionCheckerConstants.DEFAULT_TIMEOUT,
+    )).hasConnection;
   }
 
   /// Listen to the connection status changes
