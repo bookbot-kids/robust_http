@@ -18,7 +18,10 @@ class DioHttp extends BaseHttp {
   DioHttp({required String baseUrl, Map<String, dynamic> options = const {}}) {
     _proxyUrl = options["proxyUrl"] ?? '';
     final String targetBaseUrl;
-    if (_proxyUrl.isNotEmpty && baseUrl.isNotEmpty) {
+
+    if (_proxyUrl.isNotEmpty &&
+        baseUrl.isNotEmpty &&
+        !baseUrl.startsWith(_proxyUrl)) {
       targetBaseUrl = '$_proxyUrl/$baseUrl';
     } else {
       targetBaseUrl = baseUrl;
@@ -109,7 +112,9 @@ class DioHttp extends BaseHttp {
     _dio.options.headers = headers;
     _dio.options.method = method.name;
     final String targetUrl;
-    if (url.startsWith('http') && _proxyUrl.isNotEmpty) {
+    if (url.startsWith('http') &&
+        _proxyUrl.isNotEmpty &&
+        !url.startsWith(_proxyUrl)) {
       targetUrl = '$_proxyUrl/$url';
     } else {
       targetUrl = url;
@@ -155,7 +160,9 @@ class DioHttp extends BaseHttp {
   Future download(String url,
       {String? localPath, bool includeHttpResponse = false}) async {
     final String targetUrl;
-    if (url.startsWith('http') && _proxyUrl.isNotEmpty) {
+    if (url.startsWith('http') &&
+        _proxyUrl.isNotEmpty &&
+        !url.startsWith(_proxyUrl)) {
       targetUrl = '$_proxyUrl/$url';
     } else {
       targetUrl = url;
