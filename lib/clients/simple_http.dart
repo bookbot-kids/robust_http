@@ -110,7 +110,7 @@ class SimpleHttp extends BaseHttp {
   }
 
   @override
-  Future<void> handleException(error) async {
+  Future<void> handleException(error, StackTrace stackTrace) async {
     HttpLogAdapter.shared.logger?.e('SimpleHttp exception: $error');
     if (await validateConnectionError()) {
       if (error is UnexpectedResponseException) {
@@ -118,7 +118,7 @@ class SimpleHttp extends BaseHttp {
       } else if (error is TimeoutException) {
         throw error;
       } else {
-        throw UnknownException(error.message);
+        throw UnknownException(error.message, stackTrace: stackTrace);
       }
     }
   }

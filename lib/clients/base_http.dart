@@ -24,7 +24,7 @@ abstract class BaseHttp {
   Future<dynamic> download(String url,
       {String? localPath, bool includeHttpResponse = false});
 
-  Future<void> handleException(dynamic error);
+  Future<void> handleException(dynamic error, StackTrace stackTrace);
 
   Future<bool> validateConnectionError({bool validateNetwork = true}) async {
     if (!await ConnectionHelper.shared.hasConnection()) {

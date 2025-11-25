@@ -10,10 +10,10 @@ dependencies:
   flutter:
     sdk: flutter
   intl: ^0.20.2
-  connectivity_plus: ^6.1.4
-  logger: ^2.6.1
-  dio: ^5.8.0+1
-  http: ^1.4.0
+  connectivity_plus: ^6.1.5
+  logger: ^2.6.2
+  dio: ^5.9.0
+  http: ^1.6.0
   enum_to_string: ^2.2.1
   singleton: ^0.0.3-nullsafety
   internet_connection_checker: ^3.0.1

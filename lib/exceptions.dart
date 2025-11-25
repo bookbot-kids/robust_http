@@ -3,9 +3,10 @@ import 'package:intl/intl.dart';
 // The text in these exceptions are for public facing modals.
 class UnknownException implements Exception {
   String devDescription;
-  UnknownException(this.devDescription);
+  StackTrace? stackTrace;
+  UnknownException(this.devDescription, {this.stackTrace});
   String toString() => devDescription.isNotEmpty == true
-      ? 'Error $devDescription'
+      ? 'Error $devDescription, stackTrace: ${stackTrace?.toString()}'
       : Intl.message("We're unsure what happened, but we're looking into it.",
           name: 'unknownException');
 }
@@ -33,11 +34,19 @@ class UnexpectedResponseException implements Exception {
   int statusCode;
   String errorMessage;
   dynamic data;
+  StackTrace? stackTrace;
+  String requestDetails;
 
-  UnexpectedResponseException(this.url, this.statusCode, this.errorMessage,
-      {this.data});
+  UnexpectedResponseException(
+    this.url,
+    this.statusCode,
+    this.errorMessage, {
+    this.data,
+    this.stackTrace,
+    this.requestDetails = '',
+  });
   String toString() =>
-      'Request error [$statusCode] at $url, message: $errorMessage, data: $data';
+      'Request error [$statusCode] at $url, message: $errorMessage, data: $data, \n\n requestDetails: $requestDetails \n stackTrace: ${stackTrace?.toString()}';
 }
 
 class SyncDataException implements Exception {

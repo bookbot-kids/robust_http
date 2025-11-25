@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
@@ -73,7 +74,7 @@ class DioHttp extends BaseHttp {
   }
 
   @override
-  Future<void> handleException(error) async {
+  Future<void> handleException(error, StackTrace stackTrace) async {
     if (await validateConnectionError(
         validateNetwork: _validateNetworkOnError)) {
       if (error is DioException) {
@@ -82,19 +83,21 @@ class DioHttp extends BaseHttp {
             error.type == DioExceptionType.receiveTimeout) {
           throw NetworkTimeoutException(
               'Request ${error.requestOptions.path} timeout [${error.response?.statusCode}] ${error.message}');
-        } else if (error.response != null) {
-          throw UnexpectedResponseException(error.requestOptions.path,
-              error.response?.statusCode ?? 0, error.message ?? '',
-              data: error.response!.data);
         } else {
           HttpLogAdapter.shared.logger?.i(
               'DioError error on ${error.requestOptions.path} ${error.message}');
-          throw UnknownException(
-              ' Request error on ${error.requestOptions.path} ${error.message}');
+          throw UnexpectedResponseException(
+            error.requestOptions.path,
+            error.response?.statusCode ?? 0,
+            error.message ?? '',
+            data: error.response?.data,
+            stackTrace: error.stackTrace,
+            requestDetails: _getRequestOptionsAsJson(error.requestOptions),
+          );
         }
       } else {
         HttpLogAdapter.shared.logger?.i('Unknown error: $error');
-        throw UnknownException(error.message);
+        throw UnknownException(error.message, stackTrace: stackTrace);
       }
     }
   }
@@ -175,5 +178,22 @@ class DioHttp extends BaseHttp {
     final response = await _dio.get<ResponseBody>(targetUrl,
         options: Options(responseType: ResponseType.stream));
     return includeHttpResponse == true ? response : response.data;
+  }
+
+  String _getRequestOptionsAsJson(RequestOptions options) {
+    final map = {
+      'method': options.method,
+      'path': options.path,
+      'baseUrl': options.baseUrl,
+      'queryParameters': options.queryParameters.toString(),
+      'headers': options.headers.toString(),
+      'contentType': options.contentType,
+      'data': options.data?.toString() ?? '',
+      'responseType': options.responseType.toString(),
+      'followRedirects': options.followRedirects,
+      'maxRedirects': options.maxRedirects,
+    };
+
+    return JsonEncoder.withIndent(' ').convert(map);
   }
 }

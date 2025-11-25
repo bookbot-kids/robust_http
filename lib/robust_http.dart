@@ -184,9 +184,9 @@ class HTTP {
           includeHttpResponse: includeHttpResponse,
           isMultipart: isMultipart,
         );
-      } catch (error) {
+      } catch (error, stackTrace) {
         try {
-          await _httpClient?.handleException(error);
+          await _httpClient?.handleException(error, stackTrace);
         } catch (e) {
           // don't retry in this case
           if ((e is UnexpectedResponseException && e.statusCode >= 500) ||
