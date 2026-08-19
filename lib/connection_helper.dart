@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/foundation.dart';
-import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:internet_connection_checker_plus/internet_connection_checker_plus.dart';
 import 'package:singleton/singleton.dart';
 
 class ConnectionHelper {
@@ -14,7 +14,28 @@ class ConnectionHelper {
   static final _stateSubscriptions =
       <StreamSubscription<List<ConnectivityResult>>>[];
   static final _internetSubscriptions =
-      <StreamSubscription<InternetConnectionStatus>>[];
+      <StreamSubscription<InternetStatus>>[];
+  static final _internetCheckers = <InternetConnection>[];
+
+  /// The default endpoints used by `internet_connection_checker_plus`,
+  /// rebuilt with a custom [timeout] because the package keeps its own
+  /// default option list private.
+  static List<InternetCheckOption> _checkOptions(Duration timeout) => [
+        InternetCheckOption(
+            uri: Uri.parse('https://one.one.one.one'), timeout: timeout),
+        InternetCheckOption(
+            uri: Uri.parse('https://icanhazip.com'), timeout: timeout),
+        InternetCheckOption(
+          uri: Uri.parse(
+            'https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js',
+          ),
+          timeout: timeout,
+        ),
+        InternetCheckOption(
+          uri: Uri.parse('https://captive.apple.com/internet-check'),
+          timeout: timeout,
+        ),
+      ];
 
   /// Whether the device has any connection status. By default does not include bluetooth in the check
   Future<bool> hasConnection({bool includeBluetooth = false}) async {
@@ -40,11 +61,19 @@ class ConnectionHelper {
   /// Whether the device has any internet connection
   Future<bool> hasInternetConnection({int? timeoutInSeconds}) async {
     if (kIsWeb) return true;
-    return await (InternetConnectionChecker.createInstance(
-      checkTimeout: timeoutInSeconds != null
-          ? Duration(seconds: timeoutInSeconds)
-          : InternetConnectionCheckerConstants.DEFAULT_TIMEOUT,
-    )).hasConnection;
+    if (timeoutInSeconds == null) {
+      return await InternetConnection().hasInternetAccess;
+    }
+
+    final checker = InternetConnection.createInstance(
+      useDefaultOptions: false,
+      customCheckOptions: _checkOptions(Duration(seconds: timeoutInSeconds)),
+    );
+    try {
+      return await checker.hasInternetAccess;
+    } finally {
+      await checker.dispose();
+    }
   }
 
   /// Listen to the connection status changes
@@ -73,12 +102,15 @@ class ConnectionHelper {
   void listenInternetChanged(void Function(bool) listener,
       {int delayedInSeconds = 60, int timeoutInSeconds = 10}) {
     if (kIsWeb) return;
-    final subscription = InternetConnectionChecker.createInstance(
+    final checker = InternetConnection.createInstance(
       checkInterval: Duration(seconds: delayedInSeconds),
-      checkTimeout: Duration(seconds: timeoutInSeconds),
-    ).onStatusChange.listen((event) {
-      listener(event == InternetConnectionStatus.connected);
+      useDefaultOptions: false,
+      customCheckOptions: _checkOptions(Duration(seconds: timeoutInSeconds)),
+    );
+    final subscription = checker.onStatusChange.listen((event) {
+      listener(event == InternetStatus.connected);
     });
+    _internetCheckers.add(checker);
     _internetSubscriptions.add(subscription);
   }
 
@@ -86,6 +118,9 @@ class ConnectionHelper {
   void unlistenInternetChanged() {
     _internetSubscriptions.forEach((sub) {
       sub.cancel();
+    });
+    _internetCheckers.forEach((checker) {
+      checker.dispose();
     });
   }
 
@@ -97,5 +132,6 @@ class ConnectionHelper {
   /// Clear all the internet subscriptions
   void clearInternetSubscriptions() {
     _internetSubscriptions.clear();
+    _internetCheckers.clear();
   }
 }
