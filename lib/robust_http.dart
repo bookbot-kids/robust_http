@@ -1,5 +1,10 @@
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/clients/dio_http.dart';
+import 'package:robust_http/connection_helper.dart';
+import 'package:robust_http/download/download_request.dart';
+import 'package:robust_http/engine/http_engine.dart';
+import 'package:robust_http/http_log_adapter.dart';
+import 'package:robust_http/retry/retry_policy.dart';
 
 import 'exceptions.dart';
 
@@ -16,6 +21,14 @@ class HTTP {
   /// You should use lowercase as the key name when you need to set the request header.
   Map<String, dynamic> headers = {};
 
+  /// The HTTP stack this client actually uses. `native` means HTTP/2 (and
+  /// HTTP/3 where the server offers it); `dartIo` means HTTP/1.1, where every
+  /// concurrent request needs its own connection.
+  HttpEngine get engine {
+    final client = _httpClient;
+    return client is DioHttp ? client.engine : HttpEngine.dartIo;
+  }
+
   /// Configure HTTP with defaults from a Map
   ///
   /// `httpRetries` the retry number on failure, default is 3
@@ -27,6 +40,14 @@ class HTTP {
   /// `headers` http headers
   ///
   /// `logLevel` logLevel to print http log. Only accept `none`, `debug` or `error`. Default is `error`
+  ///
+  /// `httpEngine` which HTTP stack to use: `dartIo` (default, HTTP/1.1),
+  /// `native` (NSURLSession/Cronet - HTTP/2 and HTTP/3) or `auto`
+  ///
+  /// `idleTimeout` seconds to keep a pooled connection alive, default 3.
+  /// Raise it for clients that fetch many small files in a row
+  ///
+  /// `maxConnectionsPerHost` dart:io has no limit by default
   HTTP(String? baseUrl,
       [Map<String, dynamic> options = const {}, BaseHttp? client]) {
     _httpRetries = options["httpRetries"] ?? _httpRetries;
@@ -205,5 +226,77 @@ class HTTP {
     }
     // Exhausted retries, so send back exception
     throw RetryFailureException();
+  }
+
+  /// Downloads a file with resume, verification and network-aware retries.
+  ///
+  /// Prefer this over [download] for anything large or anything a user is
+  /// waiting on:
+  ///  * writes `<savePath>.part` and renames on success, so a killed app never
+  ///    leaves a truncated file that looks complete
+  ///  * continues an interrupted transfer with `Range`/`If-Range` instead of
+  ///    starting over - the difference between finishing and never finishing
+  ///    on a 3G connection
+  ///  * classifies failures: a 404 stops immediately, a 503 or timeout backs
+  ///    off with jitter, and `Retry-After` is honoured
+  ///  * stops early when the device is offline so the caller can wait for
+  ///    connectivity instead of burning attempts
+  ///
+  /// Throws [ConnectivityException] when offline, [UnexpectedResponseException]
+  /// for a permanent server answer, or the last error after [policy] is spent.
+  Future<DownloadResult> downloadFile(
+    DownloadRequest request, {
+    RetryPolicy policy = const RetryPolicy(),
+  }) async {
+    Object? lastError;
+
+    for (var attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+      try {
+        final client = _httpClient;
+        if (client == null) {
+          throw UnknownException('HTTP client is not initialised');
+        }
+        return await client.downloadFile(request);
+      } catch (error) {
+        lastError = error;
+        final verdict = policy.verdict(error);
+
+        if (verdict == RetryVerdict.permanent) {
+          rethrow;
+        }
+
+        if (verdict == RetryVerdict.offline) {
+          rethrow;
+        }
+
+        // A transient failure. Check we still have a network before spending
+        // another attempt on it. If the connectivity check itself fails we
+        // assume we are online - a broken probe must not block downloads.
+        var connected = true;
+        try {
+          connected = await ConnectionHelper.shared.hasConnection();
+        } catch (_) {}
+        if (!connected) {
+          throw ConnectivityException('The connection is turn off',
+              hasConnectionStatus: false);
+        }
+
+        if (attempt == policy.maxAttempts) {
+          rethrow;
+        }
+
+        final delay = policy.delayFor(
+          attempt,
+          retryAfter:
+              error is UnexpectedResponseException ? error.retryAfter : null,
+        );
+        HttpLogAdapter.shared.logger?.i(
+            'Download attempt $attempt/${policy.maxAttempts} failed for '
+            '${request.url} ($error), retrying in ${delay.inMilliseconds}ms');
+        await Future.delayed(delay);
+      }
+    }
+
+    throw lastError ?? RetryFailureException();
   }
 }

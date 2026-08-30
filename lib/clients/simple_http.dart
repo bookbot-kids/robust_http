@@ -86,9 +86,6 @@ class SimpleHttp extends BaseHttp {
       case HttpMethod.DELETE:
         return client.delete(_buildUri(url, parameters),
             headers: normalizedHeaders, body: data);
-      default:
-        return client.get(_buildUri(url, parameters),
-            headers: normalizedHeaders);
     }
   }
 

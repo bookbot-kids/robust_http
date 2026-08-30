@@ -2,9 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:dio/io.dart';
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:robust_http/clients/base_http.dart';
+import 'package:robust_http/download/download_request.dart';
+import 'package:robust_http/download/resumable_downloader.dart';
+import 'package:robust_http/engine/adapter_factory.dart';
+import 'package:robust_http/engine/http_engine.dart';
 import 'package:robust_http/exceptions.dart';
 import 'package:robust_http/file_info.dart';
 import 'package:robust_http/http_log_adapter.dart';
@@ -13,8 +16,14 @@ import 'package:http_parser/http_parser.dart';
 
 class DioHttp extends BaseHttp {
   late Dio _dio;
+  late HttpEngineOptions _engineOptions;
+  ResumableDownloader? _downloader;
   var _validateNetworkOnError = true;
   var _proxyUrl = '';
+
+  /// Which stack this client ended up on - useful in logs when a device
+  /// behaves differently from the rest.
+  HttpEngine get engine => resolveEngine(_engineOptions);
 
   DioHttp({required String baseUrl, Map<String, dynamic> options = const {}}) {
     _proxyUrl = options["proxyUrl"] ?? '';
@@ -57,16 +66,9 @@ class DioHttp extends BaseHttp {
       _validateNetworkOnError = options["validateNetworkOnError"];
     }
 
-    final client = HttpClient()
-      ..idleTimeout = Duration(seconds: options["idleTimeout"] ?? 3);
-
-    if (options["maxConnectionsPerHost"] != null) {
-      client.maxConnectionsPerHost = options["maxConnectionsPerHost"];
-    }
-
-    _dio = new Dio(baseOptions);
-    _dio.httpClientAdapter = IOHttpClientAdapter()
-      ..createHttpClient = () => client;
+    _engineOptions = HttpEngineOptions.fromMap(options);
+    _dio = Dio(baseOptions);
+    _dio.httpClientAdapter = createHttpClientAdapter(_engineOptions);
     var logLevel = options['logLevel'];
     if (logLevel != 'none') {
       _dio.interceptors.add(LoggerInterceptor(logLevel == 'debug'));
@@ -178,6 +180,12 @@ class DioHttp extends BaseHttp {
     final response = await _dio.get<ResponseBody>(targetUrl,
         options: Options(responseType: ResponseType.stream));
     return includeHttpResponse == true ? response : response.data;
+  }
+
+  @override
+  Future<DownloadResult> downloadFile(DownloadRequest request) {
+    final downloader = _downloader ??= ResumableDownloader(_dio);
+    return downloader.download(request);
   }
 
   String _getRequestOptionsAsJson(RequestOptions options) {

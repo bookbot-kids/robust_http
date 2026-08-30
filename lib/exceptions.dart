@@ -37,6 +37,9 @@ class UnexpectedResponseException implements Exception {
   StackTrace? stackTrace;
   String requestDetails;
 
+  /// How long the server asked us to wait (`Retry-After`), when it said so.
+  Duration? retryAfter;
+
   UnexpectedResponseException(
     this.url,
     this.statusCode,
@@ -44,6 +47,7 @@ class UnexpectedResponseException implements Exception {
     this.data,
     this.stackTrace,
     this.requestDetails = '',
+    this.retryAfter,
   });
   String toString() =>
       'Request error [$statusCode] at $url, message: $errorMessage, data: $data, \n\n requestDetails: $requestDetails \n stackTrace: ${stackTrace?.toString()}';

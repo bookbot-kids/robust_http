@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:enum_to_string/enum_to_string.dart';
 import 'package:robust_http/connection_helper.dart';
+import 'package:robust_http/download/download_request.dart';
 import 'package:robust_http/exceptions.dart';
 
 enum HttpMethod { GET, POST, PUT, PATCH, DELETE, HEAD }
@@ -23,6 +24,15 @@ abstract class BaseHttp {
 
   Future<dynamic> download(String url,
       {String? localPath, bool includeHttpResponse = false});
+
+  /// Resumable, verifiable download of a single file.
+  ///
+  /// Unlike [download] this writes to a `.part` file, can continue an
+  /// interrupted transfer with a Range request, reports progress and checks
+  /// the finished bytes. Clients that cannot do this keep the default.
+  Future<DownloadResult> downloadFile(DownloadRequest request) {
+    throw UnimplementedError('$runtimeType does not support downloadFile');
+  }
 
   Future<void> handleException(dynamic error, StackTrace stackTrace);
 
