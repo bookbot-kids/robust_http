@@ -76,6 +76,12 @@ class DioHttp extends BaseHttp {
   }
 
   @override
+  void close() {
+    _downloader = null;
+    _dio.close(force: true);
+  }
+
+  @override
   Future<void> handleException(error, StackTrace stackTrace) async {
     if (await validateConnectionError(
         validateNetwork: _validateNetworkOnError)) {

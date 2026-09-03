@@ -29,6 +29,11 @@ class HTTP {
     return client is DioHttp ? client.engine : HttpEngine.dartIo;
   }
 
+  /// Releases the underlying client. Call it before replacing an `HTTP`
+  /// instance that was built on a native engine, or its connection pool - and
+  /// any storage path it holds - outlives it.
+  void close() => _httpClient?.close();
+
   /// Configure HTTP with defaults from a Map
   ///
   /// `httpRetries` the retry number on failure, default is 3

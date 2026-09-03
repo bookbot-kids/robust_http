@@ -8,3 +8,6 @@ HttpClientAdapter createHttpClientAdapter(HttpEngineOptions options) =>
 
 /// Web has no selectable stack.
 HttpEngine resolveEngine(HttpEngineOptions options) => HttpEngine.dartIo;
+
+/// The browser owns the transport, so QUIC never fails back to us.
+bool isQuicError(Object? error) => false;

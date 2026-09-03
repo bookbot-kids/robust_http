@@ -36,6 +36,14 @@ abstract class BaseHttp {
 
   Future<void> handleException(dynamic error, StackTrace stackTrace);
 
+  /// Releases the underlying transport.
+  ///
+  /// Matters for the native stacks: a Cronet engine holds a connection pool
+  /// and, when configured with a storage path, a lock on that directory - so a
+  /// client that is replaced rather than closed leaves both behind, and the
+  /// replacement cannot take the same path. Does nothing by default.
+  void close() {}
+
   Future<bool> validateConnectionError({bool validateNetwork = true}) async {
     if (!await ConnectionHelper.shared.hasConnection()) {
       throw ConnectivityException('The connection is turn off',
