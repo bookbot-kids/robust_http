@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:robust_http/clients/dio_http.dart';
 import 'package:robust_http/engine/http_engine.dart';
 
 void main() {
@@ -14,6 +15,19 @@ void main() {
       expect(HttpEngine.fromString('native'), HttpEngine.native);
       expect(HttpEngine.fromString('dartIo'), HttpEngine.dartIo);
       expect(HttpEngine.fromString(' NATIVE '), HttpEngine.native);
+    });
+
+    test('reports the adapter that was actually selected', () {
+      final changes = <HttpEngine>[];
+      final client = DioHttp(baseUrl: '', options: {
+        'httpEngine': 'dartIo',
+        'logLevel': 'none',
+        'onEngineChanged': changes.add,
+      });
+      addTearDown(client.close);
+
+      expect(client.engine, HttpEngine.dartIo);
+      expect(changes, [HttpEngine.dartIo]);
     });
   });
 

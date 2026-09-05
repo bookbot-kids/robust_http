@@ -46,11 +46,18 @@ class ResumableDownloader {
     final part = File(request.partPath);
     var offset = 0;
     String? etag;
+    String? lastModified;
     if (request.resume && await part.exists()) {
       final meta = await _readMeta(request);
       if (meta != null && meta['url'] == request.url) {
         offset = await part.length();
         etag = meta['etag'] as String?;
+        lastModified = meta['lastModified'] as String?;
+        if (etag == null && lastModified == null &&
+            !request.allowUnvalidatedResume) {
+          await part.delete();
+          offset = 0;
+        }
       } else {
         // Meta lost or belongs to another url - cannot trust the bytes.
         await part.delete();
@@ -64,6 +71,8 @@ class ResumableDownloader {
         // If the file changed on the CDN, the server answers 200 (full body)
         // instead of 206 and we restart cleanly.
         headers['if-range'] = etag;
+      } else if (lastModified != null) {
+        headers['if-range'] = lastModified;
       }
     }
 
@@ -84,7 +93,7 @@ class ResumableDownloader {
           responseType: ResponseType.stream,
           followRedirects: true,
           // We inspect the status ourselves so 206/416 are not exceptions.
-          validateStatus: (status) => status != null && status < 500,
+          validateStatus: (status) => status != null && status < 600,
         ),
       );
     } on DioException catch (e) {
@@ -97,18 +106,22 @@ class ResumableDownloader {
       // Our partial file is longer than the resource (it changed, or the disk
       // holds junk). Start over on the next attempt.
       await _discardPart(request);
+      await _drain(response);
       throw UnexpectedResponseException(request.url, status,
           'Range not satisfiable, partial file discarded');
     }
 
     if (status == HttpStatus.tooManyRequests ||
         status == HttpStatus.serviceUnavailable) {
+      final retryAfter = RetryPolicy.retryAfterOf(response);
+      await _drain(response);
       throw UnexpectedResponseException(
           request.url, status, 'Server asked us to slow down',
-          retryAfter: RetryPolicy.retryAfterOf(response));
+          retryAfter: retryAfter);
     }
 
     if (status != HttpStatus.ok && status != HttpStatus.partialContent) {
+      await _drain(response);
       throw UnexpectedResponseException(
           request.url, status, 'Unexpected status while downloading');
     }
@@ -119,15 +132,30 @@ class ResumableDownloader {
       offset = 0;
     }
 
-    _checkContentType(request, response);
+    final contentError = _contentTypeError(request, response);
+    if (contentError != null) {
+      await _drain(response);
+      throw contentError;
+    }
 
     final total = _totalBytesOf(response, offset);
-    await _writeMeta(request, response);
+    final keepResumeMetadata = request.resume &&
+        (request.resumeMetadataThresholdBytes <= 0 || total < 0 ||
+            total >= request.resumeMetadataThresholdBytes);
+    if (keepResumeMetadata) {
+      await _writeMeta(request, response);
+    } else {
+      await _deleteQuietly(File(request.metaPath));
+    }
 
     final sink = part.openWrite(mode: resumed ? FileMode.append : FileMode.write);
     var received = offset;
     var downloaded = 0;
     var lastChunkAt = DateTime.now();
+    DateTime? firstByteAt;
+    var lastProgressAt = started;
+    var lastReportedReceived = received;
+    var hasReportedProgress = false;
     Timer? stallWatchdog;
 
     try {
@@ -142,17 +170,27 @@ class ResumableDownloader {
       });
 
       await for (final chunk in response.data!.stream) {
-        lastChunkAt = DateTime.now();
+        final now = DateTime.now();
+        lastChunkAt = now;
+        firstByteAt ??= now;
         sink.add(chunk);
         received += chunk.length;
         downloaded += chunk.length;
-        request.onProgress?.call(DownloadProgress(
-          received: received,
-          total: total,
-          bytesPerSecond: _speed(downloaded, started),
-        ));
+        if (!hasReportedProgress ||
+            request.progressInterval == Duration.zero ||
+            now.difference(lastProgressAt) >= request.progressInterval) {
+          _reportProgress(request, received, total, downloaded, started,
+              firstByteAt);
+          hasReportedProgress = true;
+          lastProgressAt = now;
+          lastReportedReceived = received;
+        }
       }
     } on DioException catch (e) {
+      if (received != lastReportedReceived) {
+        _reportProgress(
+            request, received, total, downloaded, started, firstByteAt);
+      }
       await sink.close();
       if (CancelToken.isCancel(e) && request.cancelToken?.isCancelled != true) {
         // Our stall watchdog fired: a timeout, not a user cancel.
@@ -161,27 +199,38 @@ class ResumableDownloader {
       }
       throw _mapDioException(request, e);
     } catch (_) {
+      if (received != lastReportedReceived) {
+        _reportProgress(
+            request, received, total, downloaded, started, firstByteAt);
+      }
       await sink.close();
       rethrow;
     } finally {
       stallWatchdog?.cancel();
     }
 
-    await sink.flush();
+    if (received != lastReportedReceived) {
+      _reportProgress(
+          request, received, total, downloaded, started, firstByteAt);
+    }
     await sink.close();
 
-    await _verify(request, part, total);
+    final finalSize = await _verify(request, part, total);
 
     await part.rename(request.savePath);
     await _deleteQuietly(File(request.metaPath));
 
     return DownloadResult(
       path: request.savePath,
-      totalBytes: await File(request.savePath).length(),
+      totalBytes: finalSize,
       downloadedBytes: downloaded,
       resumed: resumed,
       elapsed: DateTime.now().difference(started),
       fromCache: false,
+      timeToFirstByte:
+          firstByteAt == null ? null : firstByteAt.difference(started),
+      statusCode: status,
+      responseHeaders: response.headers.map,
     );
   }
 
@@ -202,22 +251,24 @@ class ResumableDownloader {
     return length == null ? -1 : length + offset;
   }
 
-  void _checkContentType(DownloadRequest request, Response<ResponseBody> response) {
+  InvalidContentException? _contentTypeError(
+      DownloadRequest request, Response<ResponseBody> response) {
     final expected = request.expectedContentType;
     if (expected == null) {
-      return;
+      return null;
     }
 
     final actual = response.headers.value('content-type') ?? '';
     if (!actual.toLowerCase().contains(expected.toLowerCase())) {
       // Classic captive portal: 200 OK with an HTML login page where an image
       // was expected.
-      throw InvalidContentException(
+      return InvalidContentException(
           request.url, 'expected $expected but got "$actual"');
     }
+    return null;
   }
 
-  Future<void> _verify(DownloadRequest request, File part, int total) async {
+  Future<int> _verify(DownloadRequest request, File part, int total) async {
     final size = await part.length();
 
     if (total > 0 && size != total) {
@@ -240,6 +291,29 @@ class ResumableDownloader {
         throw InvalidContentException(
             request.url, 'md5 mismatch (expected $expectedMd5, got $digest)');
       }
+    }
+    return size;
+  }
+
+  void _reportProgress(DownloadRequest request, int received, int total,
+      int downloaded, DateTime started, DateTime? firstByteAt) {
+    request.onProgress?.call(DownloadProgress(
+      received: received,
+      total: total,
+      bytesPerSecond: _speed(downloaded, started),
+      downloadedBytes: downloaded,
+      attempt: request.attempt,
+      elapsed: DateTime.now().difference(started),
+      timeToFirstByte:
+          firstByteAt == null ? null : firstByteAt.difference(started),
+    ));
+  }
+
+  Future<void> _drain(Response<ResponseBody> response) async {
+    try {
+      await response.data?.stream.drain<void>();
+    } catch (_) {
+      // Preserve the HTTP error; draining only releases native resources.
     }
   }
 

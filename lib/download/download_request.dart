@@ -6,6 +6,10 @@ class DownloadProgress {
     required this.received,
     required this.total,
     required this.bytesPerSecond,
+    this.downloadedBytes = 0,
+    this.attempt = 1,
+    this.elapsed = Duration.zero,
+    this.timeToFirstByte,
   });
 
   /// Bytes on disk, including anything resumed from a previous attempt.
@@ -14,6 +18,13 @@ class DownloadProgress {
   /// Total size, or -1 when the server did not say.
   final int total;
   final double bytesPerSecond;
+
+  /// Bytes transferred by this network attempt. Unlike [received], this does
+  /// not include bytes already present in a resumable partial file.
+  final int downloadedBytes;
+  final int attempt;
+  final Duration elapsed;
+  final Duration? timeToFirstByte;
 
   bool get hasTotal => total > 0;
   double get percent => hasTotal ? (received / total).clamp(0.0, 1.0) : 0.0;
@@ -38,6 +49,10 @@ class DownloadRequest {
     this.expectedContentType,
     this.cancelToken,
     this.onProgress,
+    this.progressInterval = Duration.zero,
+    this.resumeMetadataThresholdBytes = 0,
+    this.allowUnvalidatedResume = false,
+    this.attempt = 1,
   });
 
   final String url;
@@ -65,8 +80,41 @@ class DownloadRequest {
   final CancelToken? cancelToken;
   final DownloadProgressCallback? onProgress;
 
+  /// Minimum known file size for writing resumable sidecar metadata. Zero
+  /// preserves the original behaviour. Smaller interrupted files restart.
+  final int resumeMetadataThresholdBytes;
+
+  /// Minimum time between callbacks. A final callback is always emitted.
+  final Duration progressInterval;
+
+  /// Permits a Range request without ETag or Last-Modified.
+  final bool allowUnvalidatedResume;
+
+  /// One-based attempt, set by the retry wrapper.
+  final int attempt;
+
   String get partPath => '$savePath.part';
   String get metaPath => '$savePath.part.meta';
+
+  DownloadRequest copyWith({
+    DownloadProgressCallback? onProgress,
+    int? attempt,
+  }) => DownloadRequest(
+        url: url,
+        savePath: savePath,
+        headers: headers,
+        resume: resume,
+        stallTimeout: stallTimeout,
+        expectedMd5: expectedMd5,
+        expectedSize: expectedSize,
+        expectedContentType: expectedContentType,
+        cancelToken: cancelToken,
+        onProgress: onProgress ?? this.onProgress,
+        progressInterval: progressInterval,
+        resumeMetadataThresholdBytes: resumeMetadataThresholdBytes,
+        allowUnvalidatedResume: allowUnvalidatedResume,
+        attempt: attempt ?? this.attempt,
+      );
 }
 
 /// Result of a finished download.
@@ -78,6 +126,10 @@ class DownloadResult {
     required this.resumed,
     required this.elapsed,
     required this.fromCache,
+    this.attempts = 1,
+    this.timeToFirstByte,
+    this.statusCode,
+    this.responseHeaders = const {},
   });
 
   final String path;
@@ -94,10 +146,37 @@ class DownloadResult {
 
   /// True when the file already existed and nothing was fetched.
   final bool fromCache;
+  final int attempts;
+  final Duration? timeToFirstByte;
+  final int? statusCode;
+  final Map<String, List<String>> responseHeaders;
+
+  String? header(String name) {
+    final values = responseHeaders[name.toLowerCase()];
+    return values == null || values.isEmpty ? null : values.first;
+  }
 
   double get bytesPerSecond => elapsed.inMilliseconds > 0
       ? downloadedBytes / (elapsed.inMilliseconds / 1000)
       : 0;
+
+  DownloadResult copyWith({
+    int? downloadedBytes,
+    Duration? elapsed,
+    int? attempts,
+    Duration? timeToFirstByte,
+  }) => DownloadResult(
+        path: path,
+        totalBytes: totalBytes,
+        downloadedBytes: downloadedBytes ?? this.downloadedBytes,
+        resumed: resumed,
+        elapsed: elapsed ?? this.elapsed,
+        fromCache: fromCache,
+        attempts: attempts ?? this.attempts,
+        timeToFirstByte: timeToFirstByte ?? this.timeToFirstByte,
+        statusCode: statusCode,
+        responseHeaders: responseHeaders,
+      );
 
   @override
   String toString() => 'DownloadResult($path, $totalBytes bytes, '

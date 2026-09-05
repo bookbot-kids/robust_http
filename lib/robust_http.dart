@@ -254,14 +254,45 @@ class HTTP {
     RetryPolicy policy = const RetryPolicy(),
   }) async {
     Object? lastError;
+    final operationStarted = DateTime.now();
+    var downloadedBytes = 0;
+    Duration? timeToFirstByte;
 
     for (var attempt = 1; attempt <= policy.maxAttempts; attempt++) {
+      final cancelled = request.cancelToken?.cancelError;
+      if (cancelled != null) {
+        throw cancelled;
+      }
+
+      var attemptBytes = 0;
+      final attemptRequest = request.copyWith(
+        attempt: attempt,
+        onProgress: (progress) {
+          final delta = progress.downloadedBytes - attemptBytes;
+          if (delta > 0) {
+            downloadedBytes += delta;
+            attemptBytes = progress.downloadedBytes;
+          }
+          timeToFirstByte ??= DateTime.now().difference(operationStarted);
+          request.onProgress?.call(progress);
+        },
+      );
       try {
         final client = _httpClient;
         if (client == null) {
           throw UnknownException('HTTP client is not initialised');
         }
-        return await client.downloadFile(request);
+        final result = await client.downloadFile(attemptRequest);
+        if (attemptBytes == 0 && result.downloadedBytes > 0) {
+          // Custom BaseHttp implementations may not emit progress.
+          downloadedBytes += result.downloadedBytes;
+        }
+        return result.copyWith(
+          downloadedBytes: downloadedBytes,
+          elapsed: DateTime.now().difference(operationStarted),
+          attempts: attempt,
+          timeToFirstByte: timeToFirstByte,
+        );
       } catch (error) {
         lastError = error;
         final verdict = policy.verdict(error);
@@ -298,10 +329,27 @@ class HTTP {
         HttpLogAdapter.shared.logger?.i(
             'Download attempt $attempt/${policy.maxAttempts} failed for '
             '${request.url} ($error), retrying in ${delay.inMilliseconds}ms');
-        await Future.delayed(delay);
+        await _cancelableDelay(delay, request);
       }
     }
 
     throw lastError ?? RetryFailureException();
+  }
+
+  Future<void> _cancelableDelay(
+      Duration delay, DownloadRequest request) async {
+    final cancelToken = request.cancelToken;
+    if (cancelToken == null) {
+      await Future.delayed(delay);
+      return;
+    }
+    if (cancelToken.isCancelled) {
+      throw cancelToken.cancelError!;
+    }
+
+    await Future.any<void>([
+      Future<void>.delayed(delay),
+      cancelToken.whenCancel.then<void>((error) => throw error),
+    ]);
   }
 }

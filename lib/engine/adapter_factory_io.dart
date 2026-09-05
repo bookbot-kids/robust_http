@@ -51,11 +51,13 @@ bool isQuicError(Object? error) {
 /// Never throws: if the native stack cannot be created we log it and fall back
 /// to dart:io, because a device that cannot start Cronet must still be able to
 /// make requests.
-HttpClientAdapter createHttpClientAdapter(HttpEngineOptions options) {
+HttpClientAdapter createHttpClientAdapter(HttpEngineOptions options,
+    {HttpEngineChanged? onEngineChanged}) {
   final engine = resolveEngine(options);
   if (engine == HttpEngine.native) {
     try {
       final cache = _resolveCache(options);
+      onEngineChanged?.call(HttpEngine.native);
       return NativeAdapter(
         // Cronet enables HTTP/2 and QUIC by default; we set them explicitly so
         // the intent is visible and can be flipped off if a device misbehaves.
@@ -72,12 +74,14 @@ HttpClientAdapter createHttpClientAdapter(HttpEngineOptions options) {
         // images, no Play Services) - common on cheap hardware. Without this
         // the adapter would throw on the first request.
         createFallbackAdapter: (error, stackTrace) {
+          onEngineChanged?.call(HttpEngine.dartIo);
           HttpLogAdapter.shared.logger?.w(
               'Cronet unavailable, falling back to dart:io HTTP/1.1: $error');
           return _ioAdapter(options);
         },
       );
     } catch (e, stackTrace) {
+      onEngineChanged?.call(HttpEngine.dartIo);
       HttpLogAdapter.shared.logger?.w(
           'Could not create the native HTTP adapter, using dart:io instead: $e',
           error: e,
@@ -86,6 +90,7 @@ HttpClientAdapter createHttpClientAdapter(HttpEngineOptions options) {
     }
   }
 
+  onEngineChanged?.call(HttpEngine.dartIo);
   return _ioAdapter(options);
 }
 

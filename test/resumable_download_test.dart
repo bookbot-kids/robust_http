@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:robust_http/clients/dio_http.dart';
 import 'package:robust_http/download/download_request.dart';
@@ -20,6 +21,7 @@ void main() {
 
   // What the server saw, so we can assert on resume behaviour.
   final rangeHeaders = <String?>[];
+  final ifRangeHeaders = <String?>[];
   var requestCount = 0;
 
   final payload =
@@ -29,12 +31,14 @@ void main() {
   setUp(() async {
     tempDir = await Directory.systemTemp.createTemp('robust_http_test');
     rangeHeaders.clear();
+    ifRangeHeaders.clear();
     requestCount = 0;
     server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     baseUrl = 'http://${server.address.host}:${server.port}';
     server.listen((request) async {
       requestCount++;
       rangeHeaders.add(request.headers.value('range'));
+      ifRangeHeaders.add(request.headers.value('if-range'));
       await handler(request);
     });
   });
@@ -145,6 +149,87 @@ void main() {
     expect(await File(savePath).readAsBytes(), payload);
   });
 
+  test('Last-Modified validates a resume when ETag is unavailable', () async {
+    final savePath = '${tempDir.path}/last-modified.webp';
+    const partial = 12000;
+    await File('$savePath.part').writeAsBytes(payload.take(partial).toList());
+    await File('$savePath.part.meta').writeAsString(json.encode({
+      'url': '$baseUrl/last-modified.webp',
+      'etag': null,
+      'lastModified': 'Wed, 21 Oct 2015 07:28:00 GMT',
+    }));
+    handler = fileHandler();
+
+    final result = await clientFor().downloadFile(DownloadRequest(
+      url: '$baseUrl/last-modified.webp',
+      savePath: savePath,
+      expectedMd5: payloadMd5,
+    ));
+
+    expect(result.resumed, isTrue);
+    expect(rangeHeaders.single, 'bytes=$partial-');
+    expect(ifRangeHeaders.single, 'Wed, 21 Oct 2015 07:28:00 GMT');
+  });
+
+  test('a partial without a validator restarts safely', () async {
+    final savePath = '${tempDir.path}/unvalidated.webp';
+    await File('$savePath.part').writeAsBytes(payload.take(12000).toList());
+    await File('$savePath.part.meta').writeAsString(json.encode({
+      'url': '$baseUrl/unvalidated.webp',
+      'etag': null,
+      'lastModified': null,
+    }));
+    handler = fileHandler();
+
+    final result = await clientFor().downloadFile(DownloadRequest(
+      url: '$baseUrl/unvalidated.webp',
+      savePath: savePath,
+      expectedMd5: payloadMd5,
+    ));
+
+    expect(result.resumed, isFalse);
+    expect(rangeHeaders.single, isNull);
+    expect(await File(savePath).readAsBytes(), payload);
+  });
+
+  test('small-file fast path skips resume metadata', () async {
+    handler = fileHandler(cutAfter: 12000);
+    final savePath = '${tempDir.path}/small.webp';
+    final request = DownloadRequest(
+      url: '$baseUrl/small.webp',
+      savePath: savePath,
+      resumeMetadataThresholdBytes: payload.length + 1,
+    );
+
+    await expectLater(clientFor().downloadFile(request), throwsA(isNotNull));
+    expect(File('$savePath.part').existsSync(), isTrue);
+    expect(File('$savePath.part.meta').existsSync(), isFalse);
+
+    handler = fileHandler();
+    await clientFor().downloadFile(request);
+    expect(rangeHeaders.last, isNull,
+        reason: 'a small interrupted file restarts instead of using Range');
+  });
+
+  test('coalesced progress always reports the final byte count', () async {
+    handler = fileHandler();
+    final progress = <DownloadProgress>[];
+
+    final result = await clientFor().downloadFile(DownloadRequest(
+      url: '$baseUrl/progress.webp',
+      savePath: '${tempDir.path}/progress.webp',
+      progressInterval: const Duration(days: 1),
+      onProgress: progress.add,
+    ));
+
+    expect(progress.length, lessThanOrEqualTo(2));
+    expect(progress.last.received, payload.length);
+    expect(progress.last.downloadedBytes, payload.length);
+    expect(progress.last.attempt, 1);
+    expect(progress.last.timeToFirstByte, isNotNull);
+    expect(result.timeToFirstByte, isNotNull);
+  });
+
   test('an existing file is a cache hit and costs no request', () async {
     handler = fileHandler();
     final savePath = '${tempDir.path}/cached.webp';
@@ -228,5 +313,91 @@ void main() {
 
     expect(result.totalBytes, payload.length);
     expect(requestCount, 3);
+    expect(result.attempts, 3);
+  });
+
+  test('a 503 exposes Retry-After before retry policy handles it', () async {
+    handler = (request) async {
+      request.response.statusCode = HttpStatus.serviceUnavailable;
+      request.response.headers.set('retry-after', '7');
+      request.response.write('temporarily unavailable');
+      await request.response.close();
+    };
+
+    await expectLater(
+      clientFor().downloadFile(DownloadRequest(
+        url: '$baseUrl/busy.webp',
+        savePath: '${tempDir.path}/busy.webp',
+      )),
+      throwsA(isA<UnexpectedResponseException>().having(
+          (error) => error.retryAfter, 'retryAfter', const Duration(seconds: 7))),
+    );
+  });
+
+  test('retry result includes bytes and time from failed attempts', () async {
+    handler = (request) => requestCount == 1
+        ? fileHandler(cutAfter: 12000)(request)
+        : fileHandler()(request);
+    final progress = <DownloadProgress>[];
+    final result = await HTTP(baseUrl, {'logLevel': 'none'}).downloadFile(
+      DownloadRequest(
+        url: '$baseUrl/retry.webp',
+        savePath: '${tempDir.path}/retry.webp',
+        onProgress: progress.add,
+      ),
+      policy: const RetryPolicy(
+        maxAttempts: 2,
+        baseDelay: Duration.zero,
+        useJitter: false,
+      ),
+    );
+
+    expect(result.attempts, 2);
+    expect(result.downloadedBytes, payload.length);
+    expect(progress.map((item) => item.attempt).toSet(), {1, 2});
+  });
+
+  test('cancellation interrupts Retry-After backoff', () async {
+    handler = (request) async {
+      request.response.statusCode = HttpStatus.serviceUnavailable;
+      request.response.headers.set('retry-after', '30');
+      await request.response.close();
+    };
+    final token = CancelToken();
+    final watch = Stopwatch()..start();
+    final future = HTTP(baseUrl, {'logLevel': 'none'}).downloadFile(
+      DownloadRequest(
+        url: '$baseUrl/cancel.webp',
+        savePath: '${tempDir.path}/cancel.webp',
+        cancelToken: token,
+      ),
+      policy: const RetryPolicy(maxAttempts: 2),
+    );
+    final expectation = expectLater(future, throwsA(isA<DioException>()));
+    while (requestCount == 0) {
+      await Future<void>.delayed(const Duration(milliseconds: 5));
+    }
+    token.cancel('test cancellation');
+
+    await expectation;
+    expect(watch.elapsed, lessThan(const Duration(seconds: 2)));
+    expect(requestCount, 1);
+  });
+
+  test('result exposes response status and cache headers', () async {
+    handler = (request) async {
+      request.response.headers.set('content-type', 'application/octet-stream');
+      request.response.headers.set('cf-cache-status', 'HIT');
+      request.response.add(payload);
+      await request.response.close();
+    };
+
+    final result = await clientFor().downloadFile(DownloadRequest(
+      url: '$baseUrl/headers.webp',
+      savePath: '${tempDir.path}/headers.webp',
+    ));
+
+    expect(result.statusCode, HttpStatus.ok);
+    expect(result.header('CF-Cache-Status'), 'HIT');
   });
 }

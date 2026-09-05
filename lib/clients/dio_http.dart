@@ -20,10 +20,12 @@ class DioHttp extends BaseHttp {
   ResumableDownloader? _downloader;
   var _validateNetworkOnError = true;
   var _proxyUrl = '';
+  late HttpEngine _actualEngine;
+  HttpEngineChanged? _onEngineChanged;
 
   /// Which stack this client ended up on - useful in logs when a device
   /// behaves differently from the rest.
-  HttpEngine get engine => resolveEngine(_engineOptions);
+  HttpEngine get engine => _actualEngine;
 
   DioHttp({required String baseUrl, Map<String, dynamic> options = const {}}) {
     _proxyUrl = options["proxyUrl"] ?? '';
@@ -67,8 +69,16 @@ class DioHttp extends BaseHttp {
     }
 
     _engineOptions = HttpEngineOptions.fromMap(options);
+    _actualEngine = resolveEngine(_engineOptions);
+    _onEngineChanged = options['onEngineChanged'] is HttpEngineChanged
+        ? options['onEngineChanged'] as HttpEngineChanged
+        : null;
     _dio = Dio(baseOptions);
-    _dio.httpClientAdapter = createHttpClientAdapter(_engineOptions);
+    _dio.httpClientAdapter = createHttpClientAdapter(_engineOptions,
+        onEngineChanged: (engine) {
+      _actualEngine = engine;
+      _onEngineChanged?.call(engine);
+    });
     var logLevel = options['logLevel'];
     if (logLevel != 'none') {
       _dio.interceptors.add(LoggerInterceptor(logLevel == 'debug'));

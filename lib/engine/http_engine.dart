@@ -44,6 +44,8 @@ enum HttpEngine {
   }
 }
 
+typedef HttpEngineChanged = void Function(HttpEngine engine);
+
 /// What the native stacks are allowed to keep on the device.
 ///
 /// This is not our file cache - downloaded files are stored by the app under

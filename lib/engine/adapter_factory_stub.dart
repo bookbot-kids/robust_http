@@ -3,8 +3,11 @@ import 'package:robust_http/engine/http_engine.dart';
 
 /// Web build: the browser picks the protocol itself, so there is nothing to
 /// select. Returns Dio's platform default adapter.
-HttpClientAdapter createHttpClientAdapter(HttpEngineOptions options) =>
-    HttpClientAdapter();
+HttpClientAdapter createHttpClientAdapter(HttpEngineOptions options,
+    {HttpEngineChanged? onEngineChanged}) {
+  onEngineChanged?.call(HttpEngine.dartIo);
+  return HttpClientAdapter();
+}
 
 /// Web has no selectable stack.
 HttpEngine resolveEngine(HttpEngineOptions options) => HttpEngine.dartIo;
