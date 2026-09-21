@@ -138,6 +138,8 @@ class ResumableDownloader {
       throw contentError;
     }
 
+    // The OS can reclaim the cache while the network request is in flight.
+    await target.parent.create(recursive: true);
     final total = _totalBytesOf(response, offset);
     final keepResumeMetadata = request.resume &&
         (request.resumeMetadataThresholdBytes <= 0 || total < 0 ||
@@ -148,7 +150,9 @@ class ResumableDownloader {
       await _deleteQuietly(File(request.metaPath));
     }
 
-    final sink = part.openWrite(mode: resumed ? FileMode.append : FileMode.write);
+    // IOSink.openWrite reports open/write failures on its separate done future.
+    // Await every file operation so the caller's retry/error handler owns them.
+    final sink = await part.open(mode: resumed ? FileMode.append : FileMode.write);
     var received = offset;
     var downloaded = 0;
     var lastChunkAt = DateTime.now();
@@ -173,7 +177,7 @@ class ResumableDownloader {
         final now = DateTime.now();
         lastChunkAt = now;
         firstByteAt ??= now;
-        sink.add(chunk);
+        await sink.writeFrom(chunk);
         received += chunk.length;
         downloaded += chunk.length;
         if (!hasReportedProgress ||
