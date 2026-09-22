@@ -12,17 +12,19 @@ dependencies:
     sdk: flutter
   intl: ^0.20.3
   connectivity_plus: ^7.3.1
-  logger: ^2.7.0
-  dio: ^5.11.0
+  logger: ^2.8.0
+  dio: ^5.11.1
   http: ^1.6.0
-  http_parser: ^4.0.2
-  crypto: ^3.0.6
+  http_parser: ^4.1.2
+  crypto: ^3.0.7
   # Native HTTP stacks: NSURLSession (iOS/macOS) and Cronet (Android), which
   # give us HTTP/2 and HTTP/3. Only used when `httpEngine` is native/auto.
   native_dio_adapter: ^1.8.0
+  # Prevent native URLSession callbacks into an isolate after shutdown.
+  cupertino_http: ^3.1.0
   enum_to_string: ^2.2.1
   singleton: ^0.0.3-nullsafety
-  internet_connection_checker_plus: ^3.1.1
+  internet_connection_checker_plus: ^3.1.2
 
 dev_dependencies:
   flutter_test:
