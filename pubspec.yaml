@@ -11,7 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   intl: ^0.20.3
-  connectivity_plus: ^7.3.1
+  connectivity_plus: ^7.3.2
   logger: ^2.8.0
   dio: ^5.11.1
   http: ^1.6.0
@@ -22,7 +22,6 @@ dependencies:
   native_dio_adapter: ^1.8.0
   # Prevent native URLSession callbacks into an isolate after shutdown.
   cupertino_http: ^3.1.0
-  enum_to_string: ^2.2.1
   singleton: ^0.0.3-nullsafety
   internet_connection_checker_plus: ^3.1.2
 

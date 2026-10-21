@@ -1,15 +1,10 @@
 import 'dart:convert';
 
-import 'package:enum_to_string/enum_to_string.dart';
 import 'package:robust_http/connection_helper.dart';
 import 'package:robust_http/download/download_request.dart';
 import 'package:robust_http/exceptions.dart';
 
 enum HttpMethod { GET, POST, PUT, PATCH, DELETE, HEAD }
-
-extension $HttpMethod on HttpMethod {
-  String get name => EnumToString.convertToString(this);
-}
 
 abstract class BaseHttp {
   Future<dynamic> request(

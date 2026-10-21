@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:enum_to_string/enum_to_string.dart';
 import 'package:robust_http/clients/base_http.dart';
 import 'package:robust_http/download/download_request.dart';
 import 'package:robust_http/download/resumable_downloader.dart';
@@ -52,9 +51,11 @@ class DioHttp extends BaseHttp {
       if (options["responseType"] is ResponseType) {
         baseOptions.responseType = options["responseType"];
       } else {
-        baseOptions.responseType = EnumToString.fromString(
-                ResponseType.values, options["responseType"]) ??
-            ResponseType.json;
+        final responseType = (options["responseType"] as String).toLowerCase();
+        baseOptions.responseType = ResponseType.values.firstWhere(
+          (value) => value.name.toLowerCase() == responseType,
+          orElse: () => ResponseType.json,
+        );
       }
     } else {
       baseOptions.responseType = ResponseType.json;
